@@ -22,9 +22,9 @@ int main(int argc, char* argv[]) {
 
     window.setMouseCursorVisible(false);
 
-    sf::CircleShape circle{10};
-    circle.setOrigin(10,10);
-    circle.setFillColor(sf::Color::White);
+    sf::CircleShape cursor{10};
+    cursor.setOrigin(10,10);
+    cursor.setFillColor(sf::Color::White);
 
     Drone drone{sf::Vector2f(400,400)};
     Renderer renderer;
@@ -33,34 +33,47 @@ int main(int argc, char* argv[]) {
 
     sf::Clock clock;
     sf::Time elapsed = clock.restart();
-    const sf::Time update_ms = sf::seconds(1.f / 60.f);
+    const sf::Time update_ms = sf::seconds(1.f / 120.f);
     while (window.isOpen()) 
     {
         // EVENTS
         sf::Event event;
         while (window.pollEvent(event)) {
             if ((event.type == sf::Event::Closed) ||
-                ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Escape))) {
+                    ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Escape))) {
                 window.close();
                 break;
             }
 
-            if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Left)) {
-                drone.thrusterLeft.powerController = 1;
-                /* drone.thrusterRight.powerController = 1; */
-            }
-            else if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Right)) {
-                /* drone.thrusterLeft.powerController = 1; */
-                drone.thrusterRight.powerController = 1;
-            }
-            else {
-                drone.thrusterLeft.powerController = 0;
-                drone.thrusterRight.powerController = 0;
-            }
+            // MOUSE CONTROLS - I SUCK! 
+            /* if (event.type == sf::Event::MouseButtonPressed) { */
+            /*     std::cout << "pressed" << std::endl; */
+            /*     drone.thrusterLeft.powerController = 0.5; */
+            /*     drone.thrusterRight.powerController = 0.5; */
+            /* } */
+            /* else if (event.type == sf::Event::MouseButtonReleased) { */
+            /*     std::cout << "released" << std::endl; */
+            /*     drone.thrusterLeft.powerController = 0; */
+            /*     drone.thrusterRight.powerController = 0; */
+            /* } */
+
+            // TORQUE TESTS
+            /* if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Left)) { */
+            /*     drone.thrusterLeft.powerController = 1; */
+            /*     /1* drone.thrusterRight.powerController = 1; *1/ */
+            /* } */
+            /* else if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Right)) { */
+            /*     /1* drone.thrusterLeft.powerController = 1; *1/ */
+            /*     drone.thrusterRight.powerController = 1; */
+            /* } */
+            /* else { */
+            /*     drone.thrusterLeft.powerController = 0; */
+            /*     drone.thrusterRight.powerController = 0; */
+            /* } */
         }
 
         auto mp = sf::Mouse::getPosition(window);
-        circle.setPosition(mp.x, mp.y);
+        cursor.setPosition(mp.x, mp.y);
 
         // TESTING THRUSTER ANGLECONTROLLER CONTROLS 
         /* const sf::Vector2f lheading = sf::Vector2f{mp} - (drone.pos - drone.thrusterOffset); */
@@ -84,7 +97,7 @@ int main(int argc, char* argv[]) {
 
         window.clear();
 
-        window.draw(circle);
+        window.draw(cursor);
 
         renderer.draw(drone, window, state);
 

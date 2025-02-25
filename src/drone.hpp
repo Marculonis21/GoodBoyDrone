@@ -27,8 +27,8 @@ struct Thruster {
     }
 
 	void update(const float dt) {
-        const float desiredAngle = angleController * maxAngle;
-        /* const float desiredAngle = angleController; */
+        /* const float desiredAngle = angleController * maxAngle; */
+        const float desiredAngle = angleController;
         const float speedOfTransition = 5.0f;
 
         angle += (desiredAngle - angle) * speedOfTransition * dt;
@@ -59,8 +59,6 @@ struct Drone {
 	}
 
     sf::Vector2f getThrust() {
-        /* sf::Vector2f thrustLeft = */ 
-
         const float lAngle = angle + thrusterLeft.angle - M_PI * 0.5f;
         const float rAngle = angle + thrusterRight.angle - M_PI * 0.5f;
 
@@ -101,9 +99,8 @@ struct Drone {
 		/* vel += getThrust() * dt; */
         /* pos += vel; */
 
-        angularVel += getTorque() * dt;
-        /* angularVel = 0.01f; */
-        angle += angularVel;
+        /* angularVel += getTorque() * dt; */
+        /* angle += angularVel; */
 	}
 
 private:
