@@ -1,4 +1,5 @@
 #include "drone.hpp"
+#include "net.hpp"
 #include "renderer.hpp"
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
@@ -11,7 +12,12 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <SFML/Graphics.hpp>
+#include <cmath>
 #include <iostream>
+#include <memory>
+#include <vector>
+
+constexpr float HALF_PI = M_PI*0.5f;
 
 int main(int argc, char* argv[]) {
     const uint32_t win_width = 800;
@@ -19,6 +25,7 @@ int main(int argc, char* argv[]) {
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 4;
 	sf::RenderWindow window(sf::VideoMode(win_width, win_height), "SFML - GoodBoyDrone", sf::Style::Default, settings);
+    sf::RenderStates state;
 
     window.setMouseCursorVisible(false);
 
@@ -26,10 +33,24 @@ int main(int argc, char* argv[]) {
     cursor.setOrigin(10,10);
     cursor.setFillColor(sf::Color::White);
 
+    sf::Vector2f goalPos{200,200};
+    sf::CircleShape goal{10};
+    goal.setOrigin(10,10);
+    goal.setFillColor(sf::Color(240,190,4));
+    goal.setPosition(goalPos);
+
     Drone drone{sf::Vector2f(400,400)};
     Renderer renderer;
 
-    sf::RenderStates state;
+    Net net;
+    net.modules = {
+        std::make_shared<Linear>(9, 16),
+        std::make_shared<ReLU>(16),
+        std::make_shared<Linear>(16, 4),
+        std::make_shared<Tanh>(4),
+    };
+
+    net.initialize();
 
     sf::Clock clock;
     sf::Time elapsed = clock.restart();
@@ -93,14 +114,27 @@ int main(int argc, char* argv[]) {
             /* drone.thrusterRight.angleController */
             drone.update(elapsed.asSeconds());
             elapsed -= update_ms;
+
+            auto goalDist = goalPos - drone.pos;
+            std::vector<float> observation {
+                drone.pos.x / win_width,
+                drone.pos.y / win_height,
+                drone.vel.x / 20.0f,
+                drone.vel.y / 20.0f,
+                (drone.angle) / HALF_PI,
+                (drone.thrusterLeft.angle) / HALF_PI,
+                (drone.thrusterRight.angle) / HALF_PI,
+                goalDist.x / win_width,
+                goalDist.y / win_height
+            };
+
+            Output out = net.predict(observation);
         }
 
         window.clear();
-
-        window.draw(cursor);
-
         renderer.draw(drone, window, state);
-
+        window.draw(cursor);
+        window.draw(goal);
         window.display();
     }
     

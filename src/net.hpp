@@ -1,0 +1,128 @@
+#pragma once
+
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <cstddef>
+#include <memory>
+#include <random>
+#include <vector>
+#include <iostream>
+
+using Input = std::vector<float>;
+using Output = std::vector<float>;
+
+std::random_device rd;
+std::mt19937 gen(0);
+
+struct Module {
+
+    const std::size_t in;
+    const std::size_t out;
+
+    std::vector<float> weights;
+    Output mockOutput;
+
+    Module(std::size_t in, std::size_t out) : in(in), out(out) {
+        mockOutput.resize(out);
+    }
+    virtual ~Module() {};
+
+    virtual void initialize() = 0;
+    virtual Output forward(const Input &input) = 0;
+};
+
+
+struct Linear : public Module {
+    Linear(std::size_t in, std::size_t out) : Module(in,out) {
+        weights.resize(in*out);
+    }
+
+    void initialize() override {
+        std::uniform_real_distribution<float> distr(-1.0f, 1.0f);
+        for (int i = 0; i < out; ++i) {
+            for (int j = 0; j < in; ++j) {
+                weights[i*in + j] = distr(gen);
+            }
+
+/*             weights[in*out + i] = distr(gen); */
+        }
+
+    }
+
+    Output forward(const Input &input) override {
+        for (int i = 0; i < out; ++i) {
+            mockOutput[i] = 0;
+            for (int j = 0; j < in; ++j) {
+                mockOutput[i] += input[j]*weights[i*in + j];
+            }
+
+/*             mockOutput[in*out + i] += weights[in*out + i]; */
+        }
+        return mockOutput;
+    }
+};
+
+struct ReLU : public Module {
+    ReLU(std::size_t out) : Module(0, out) {}
+
+    void initialize() override {}
+
+    Output forward(const Input &input) override {
+        for (int i = 0; i < input.size(); ++i) {
+            mockOutput[i] = std::max(0.0f, input[i]);
+        }
+        return mockOutput;
+    }
+};
+
+struct Tanh : public Module {
+    Tanh(std::size_t out) : Module(0, out) {}
+
+    void initialize() override {}
+
+    Output forward(const Input &input) override {
+        for (int i = 0; i < input.size(); ++i) {
+            mockOutput[i] = std::tanh(input[i]);
+        }
+        return mockOutput;
+    }
+};
+
+
+struct Net {
+    std::vector<std::shared_ptr<Module>> modules;
+
+    Net() {}
+
+    void initialize() {
+        this->initialized = true;
+
+        for (auto && mod : modules) {
+            mod->initialize();
+        }
+    }
+
+    Output predict(const Input &input) const {
+        Input vals = input;
+
+        for (auto && mod : modules) {
+            vals = mod->forward(vals);
+        }
+
+        return vals;
+    }
+
+    std::vector<float> getWeights() {
+        std::vector<float> allWeights;
+
+        for (auto && mod : modules) {
+            allWeights.insert(allWeights.end(), mod->weights.begin(), mod->weights.end());
+        }
+
+        return allWeights;
+    }
+
+private: 
+    bool initialized = false;
+};

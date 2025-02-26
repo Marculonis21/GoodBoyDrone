@@ -3,7 +3,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
 #include <math.h>
-#include <iostream>
+#include <vector>
 
 struct Thruster {
 	float angleController;
@@ -69,7 +69,6 @@ struct Drone {
                rThrustVector * thrusterRight.getPower();
     }
 
-
     float getTorque() {
         const float lPower = thrusterLeft.getPower();
         const float rPower = thrusterRight.getPower();
@@ -89,18 +88,18 @@ struct Drone {
         return (lTorque + rTorque)*momentOfInertia;
     }
 
-	void update(const float dt) {
+    void update(const float dt) {
 		thrusterLeft.update(dt);
 		thrusterRight.update(dt);
 
 		/* const sf::Vector2f gravity{0, 10}; */
 		/* vel += gravity * dt; */
 
-		/* vel += getThrust() * dt; */
-        /* pos += vel; */
+		vel += getThrust() * dt;
+        pos += vel;
 
-        /* angularVel += getTorque() * dt; */
-        /* angle += angularVel; */
+        angularVel += getTorque() * dt;
+        angle += angularVel;
 	}
 
 private:

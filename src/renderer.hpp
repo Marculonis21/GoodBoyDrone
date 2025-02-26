@@ -17,14 +17,24 @@ class Renderer {
     sf::RectangleShape thrusterRight;
     sf::RectangleShape thrusterRightBottom;
 
+    sf::Color cBody;
+    sf::Color cCenter;
+    sf::Color cThrusterOn;
+    sf::Color cThrusterOff;
+
 public:
     Renderer() {
+        cBody = sf::Color(150,150,150);
+        cCenter = sf::Color::Green;
+        cThrusterOn = sf::Color::Yellow;
+        cThrusterOff = sf::Color::White;
+
         base = sf::RectangleShape(sf::Vector2f{100, 20});
-        base.setFillColor(sf::Color::White);
+        base.setFillColor(cBody);
         base.setOrigin(sf::Vector2f{50.0,10.0});
 
         center = sf::CircleShape(20);
-        center.setFillColor(sf::Color::Green);
+        center.setFillColor(cCenter);
         center.setOrigin(sf::Vector2f{20,20});
 
         thrusterLeft = sf::RectangleShape(sf::Vector2f{15, 40});
@@ -36,11 +46,11 @@ public:
         thrusterRight.setOrigin(sf::Vector2f{7.5, 20});
 
         thrusterLeftBottom = sf::RectangleShape(sf::Vector2f{15,5});
-        thrusterLeftBottom.setFillColor(sf::Color::White);
+        thrusterLeftBottom.setFillColor(cThrusterOff);
         thrusterLeftBottom.setOrigin(sf::Vector2f{7.5, -10});
 
         thrusterRightBottom = sf::RectangleShape(sf::Vector2f{15,5});
-        thrusterRightBottom.setFillColor(sf::Color::White);
+        thrusterRightBottom.setFillColor(cThrusterOff);
         thrusterRightBottom.setOrigin(sf::Vector2f{7.5, -10});
     }
 
@@ -71,6 +81,20 @@ public:
         thrusterRight.setRotation(RAD_TO_DEG * (drone.angle + drone.thrusterRight.angle));
         thrusterLeftBottom.setRotation(RAD_TO_DEG * (drone.angle + drone.thrusterLeft.angle));
         thrusterRightBottom.setRotation(RAD_TO_DEG * (drone.angle + drone.thrusterRight.angle));
+
+        if (drone.thrusterRight.powerController > 0) {
+            thrusterRightBottom.setFillColor(cThrusterOn);
+        }
+        else {
+            thrusterRightBottom.setFillColor(cThrusterOff);
+        }
+
+        if (drone.thrusterLeft.powerController > 0) {
+            thrusterLeftBottom.setFillColor(cThrusterOn);
+        }
+        else {
+            thrusterLeftBottom.setFillColor(cThrusterOff);
+        }
 
         target.draw(base, state);
         target.draw(center, state);
