@@ -1,4 +1,5 @@
 #include "drone.hpp"
+#include "ea.hpp"
 #include "net.hpp"
 #include "renderer.hpp"
 #include <SFML/Graphics/CircleShape.hpp>
@@ -16,8 +17,6 @@
 #include <iostream>
 #include <memory>
 #include <vector>
-
-constexpr float HALF_PI = M_PI*0.5f;
 
 int main(int argc, char* argv[]) {
     const uint32_t win_width = 800;
@@ -42,15 +41,17 @@ int main(int argc, char* argv[]) {
     Drone drone{sf::Vector2f(400,400)};
     Renderer renderer;
 
-    Net net;
-    net.modules = {
+    Net mother;
+    mother.modules = {
         std::make_shared<Linear>(9, 16),
         std::make_shared<ReLU>(16),
         std::make_shared<Linear>(16, 4),
         std::make_shared<Tanh>(4),
     };
 
-    net.initialize();
+    mother.initialize();
+
+    EA ea{5, mother, drone};
 
     sf::Clock clock;
     sf::Time elapsed = clock.restart();
@@ -93,8 +94,11 @@ int main(int argc, char* argv[]) {
             /* } */
         }
 
-        auto mp = sf::Mouse::getPosition(window);
-        cursor.setPosition(mp.x, mp.y);
+        window.clear();
+
+        /* auto mp = sf::Mouse::getPosition(window); */
+        /* cursor.setPosition(mp.x, mp.y); */
+        /* window.draw(cursor); */
 
         // TESTING THRUSTER ANGLECONTROLLER CONTROLS 
         /* const sf::Vector2f lheading = sf::Vector2f{mp} - (drone.pos - drone.thrusterOffset); */
@@ -104,38 +108,26 @@ int main(int argc, char* argv[]) {
         /* drone.thrusterLeft.angleController = lheadingAngle - drone.angle; */
         /* drone.thrusterRight.angleController = rheadingAngle - drone.angle; */
 
-        /* drone.thrusterLeft.angleController = 0.9; */
-        /* drone.thrusterRight.angleController = 0; */
-
         // LOGIC
         elapsed += clock.restart();
         while (elapsed >= update_ms) 
         {
-            /* drone.thrusterRight.angleController */
-            drone.update(elapsed.asSeconds());
+            ea.update(elapsed.asSeconds(), sf::Vector2f{win_width, win_height});
             elapsed -= update_ms;
-
-            auto goalDist = goalPos - drone.pos;
-            std::vector<float> observation {
-                drone.pos.x / win_width,
-                drone.pos.y / win_height,
-                drone.vel.x / 20.0f,
-                drone.vel.y / 20.0f,
-                (drone.angle) / HALF_PI,
-                (drone.thrusterLeft.angle) / HALF_PI,
-                (drone.thrusterRight.angle) / HALF_PI,
-                goalDist.x / win_width,
-                goalDist.y / win_height
-            };
-
-            Output out = net.predict(observation);
         }
 
-        window.clear();
-        renderer.draw(drone, window, state);
-        window.draw(cursor);
+        goal.setPosition(ea.goals[ea.agents[0].get()->goalIndex]);
+        renderer.draw(ea.agents[0].get(), window, state);
         window.draw(goal);
         window.display();
+
+        // if at the end ea sim was finished, do the EA process, reset and the timing
+        if (ea.simFinished) {
+            ea.process();
+
+            elapsed = sf::Time::Zero;
+            clock.restart();
+        }
     }
     
     return 0;

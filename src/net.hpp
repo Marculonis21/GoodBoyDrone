@@ -7,10 +7,10 @@
 #include <memory>
 #include <random>
 #include <vector>
-#include <iostream>
 
 using Input = std::vector<float>;
 using Output = std::vector<float>;
+using Weights = std::vector<float>;
 
 std::random_device rd;
 std::mt19937 gen(0);
@@ -20,7 +20,7 @@ struct Module {
     const std::size_t in;
     const std::size_t out;
 
-    std::vector<float> weights;
+    Weights weights;
     Output mockOutput;
 
     Module(std::size_t in, std::size_t out) : in(in), out(out) {
@@ -35,7 +35,7 @@ struct Module {
 
 struct Linear : public Module {
     Linear(std::size_t in, std::size_t out) : Module(in,out) {
-        weights.resize(in*out);
+        weights.resize(in*out + out);
     }
 
     void initialize() override {
@@ -45,9 +45,8 @@ struct Linear : public Module {
                 weights[i*in + j] = distr(gen);
             }
 
-/*             weights[in*out + i] = distr(gen); */
+            weights[in*out + i] = distr(gen);
         }
-
     }
 
     Output forward(const Input &input) override {
@@ -57,7 +56,7 @@ struct Linear : public Module {
                 mockOutput[i] += input[j]*weights[i*in + j];
             }
 
-/*             mockOutput[in*out + i] += weights[in*out + i]; */
+            mockOutput[i] += weights[in*out + i];
         }
         return mockOutput;
     }
@@ -104,6 +103,8 @@ struct Net {
     }
 
     Output predict(const Input &input) const {
+        assert(input.size() == modules[0]->in && "Size of observation != net input");
+
         Input vals = input;
 
         for (auto && mod : modules) {
@@ -113,14 +114,17 @@ struct Net {
         return vals;
     }
 
-    std::vector<float> getWeights() {
-        std::vector<float> allWeights;
+    Weights getWeights() {
+        Weights allWeights;
 
         for (auto && mod : modules) {
             allWeights.insert(allWeights.end(), mod->weights.begin(), mod->weights.end());
         }
 
         return allWeights;
+    }
+
+    void loadWeights(Weights weights) {
     }
 
 private: 

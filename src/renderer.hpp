@@ -54,42 +54,42 @@ public:
         thrusterRightBottom.setOrigin(sf::Vector2f{7.5, -10});
     }
 
-	void draw(const Drone& drone, sf::RenderTarget& target, const sf::RenderStates& state) {
-        base.setPosition(drone.pos);
-        center.setPosition(drone.pos);
+	void draw(const Drone *drone, sf::RenderTarget& target, const sf::RenderStates& state) {
+        base.setPosition(drone->pos);
+        center.setPosition(drone->pos);
 
         // vector rot
         /* x' = x cos θ − y sin θ */
         /* y' = x sin θ + y cos θ */
-        const float cos_angle = cos(drone.angle);
-        const float sin_angle = sin(drone.angle);
+        const float cos_angle = cos(drone->angle);
+        const float sin_angle = sin(drone->angle);
 
         const sf::Vector2f rotatedOffset{
-            drone.thrusterOffset.x * cos_angle - drone.thrusterOffset.y * sin_angle,
-            drone.thrusterOffset.x * sin_angle + drone.thrusterOffset.y * cos_angle,
+            drone->thrusterOffset.x * cos_angle - drone->thrusterOffset.y * sin_angle,
+            drone->thrusterOffset.x * sin_angle + drone->thrusterOffset.y * cos_angle,
         };
 
-        thrusterLeft.setPosition(drone.pos  - rotatedOffset);
-        thrusterRight.setPosition(drone.pos + rotatedOffset);
-        thrusterLeftBottom.setPosition(drone.pos - rotatedOffset);
-        thrusterRightBottom.setPosition(drone.pos + rotatedOffset);
+        thrusterLeft.setPosition(drone->pos  - rotatedOffset);
+        thrusterRight.setPosition(drone->pos + rotatedOffset);
+        thrusterLeftBottom.setPosition(drone->pos - rotatedOffset);
+        thrusterRightBottom.setPosition(drone->pos + rotatedOffset);
 
-        base.setRotation(RAD_TO_DEG * drone.angle);
-        center.setRotation(RAD_TO_DEG * drone.angle);
+        base.setRotation(RAD_TO_DEG * drone->angle);
+        center.setRotation(RAD_TO_DEG * drone->angle);
 
-        thrusterLeft.setRotation(RAD_TO_DEG * (drone.angle + drone.thrusterLeft.angle));
-        thrusterRight.setRotation(RAD_TO_DEG * (drone.angle + drone.thrusterRight.angle));
-        thrusterLeftBottom.setRotation(RAD_TO_DEG * (drone.angle + drone.thrusterLeft.angle));
-        thrusterRightBottom.setRotation(RAD_TO_DEG * (drone.angle + drone.thrusterRight.angle));
+        thrusterLeft.setRotation(RAD_TO_DEG * (drone->angle + drone->thrusterLeft.angle));
+        thrusterRight.setRotation(RAD_TO_DEG * (drone->angle + drone->thrusterRight.angle));
+        thrusterLeftBottom.setRotation(RAD_TO_DEG * (drone->angle + drone->thrusterLeft.angle));
+        thrusterRightBottom.setRotation(RAD_TO_DEG * (drone->angle + drone->thrusterRight.angle));
 
-        if (drone.thrusterRight.powerController > 0) {
+        if (drone->thrusterRight.powerController > 0) {
             thrusterRightBottom.setFillColor(cThrusterOn);
         }
         else {
             thrusterRightBottom.setFillColor(cThrusterOff);
         }
 
-        if (drone.thrusterLeft.powerController > 0) {
+        if (drone->thrusterLeft.powerController > 0) {
             thrusterLeftBottom.setFillColor(cThrusterOn);
         }
         else {

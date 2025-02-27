@@ -2,6 +2,8 @@
 
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <math.h>
 #include <vector>
 
@@ -27,11 +29,15 @@ struct Thruster {
     }
 
 	void update(const float dt) {
-        /* const float desiredAngle = angleController * maxAngle; */
-        const float desiredAngle = angleController;
+        const float desiredAngle = angleController * maxAngle;
         const float speedOfTransition = 5.0f;
 
         angle += (desiredAngle - angle) * speedOfTransition * dt;
+    }
+
+    void control(float ac, float pc) {
+        this->angleController = ac;
+        this->powerController = pc;
     }
 };
 
@@ -48,6 +54,10 @@ struct Drone {
 	const sf::Vector2f startPos;
 	const sf::Vector2f thrusterOffset{50,0};
 
+    uint64_t aliveCounter = 0;
+    size_t goalIndex = 0;
+    bool alive = true;
+
 	Drone(sf::Vector2f startPos) : startPos(startPos) { reset(); }
 
 	void reset() {
@@ -56,6 +66,13 @@ struct Drone {
 
 		vel = sf::Vector2f();
 		angularVel = 0;
+
+        aliveCounter = 0;
+        goalIndex = 0;
+        alive = true;
+
+        thrusterLeft.reset();
+        thrusterRight.reset();
 	}
 
     sf::Vector2f getThrust() {
@@ -88,7 +105,10 @@ struct Drone {
         return (lTorque + rTorque)*momentOfInertia;
     }
 
-    void update(const float dt) {
+    void update(const float dt, const sf::Vector2f &boundary) {
+        if (!alive) return;
+        aliveCounter += 1;
+
 		thrusterLeft.update(dt);
 		thrusterRight.update(dt);
 
@@ -100,10 +120,22 @@ struct Drone {
 
         angularVel += getTorque() * dt;
         angle += angularVel;
+
+        alive = !wait_he_should_be_already_dead(boundary);
 	}
+
+    void control(float lac, float lpc, float rac, float rpc) {
+        thrusterLeft.control(lac, lpc);
+        thrusterRight.control(rac, rpc);
+    }
 
 private:
     float cross(sf::Vector2f a, sf::Vector2f b) {
         return a.x * b.y + a.y * b.x;
+    }
+
+    bool wait_he_should_be_already_dead(const sf::Vector2f &boundary) {
+        return pos.x < 0 || pos.x > boundary.x ||
+               pos.y < 0 || pos.y > boundary.y;
     }
 };
