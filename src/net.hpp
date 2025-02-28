@@ -8,6 +8,7 @@
 #include <memory>
 #include <random>
 #include <vector>
+#include <iostream>
 
 using Input = std::vector<float>;
 using Output = std::vector<float>;
@@ -21,12 +22,13 @@ struct Module {
     const std::size_t in;
     const std::size_t out;
 
-    Weights weights;
-    Output mockOutput;
+    Weights weights = {};
+    Output mockOutput = {};
 
     Module(std::size_t in, std::size_t out) : in(in), out(out) {
         mockOutput.resize(out);
     }
+
     virtual ~Module() {};
 
     virtual void initialize() = 0;

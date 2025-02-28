@@ -7,12 +7,12 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/View.hpp>
-#include <SFML/System/Clock.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <SFML/Graphics.hpp>
+#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <memory>
@@ -27,6 +27,8 @@ int main(int argc, char* argv[]) {
     sf::RenderStates state;
 
     window.setMouseCursorVisible(false);
+    window.setVerticalSyncEnabled(true);
+    /* window.setFramerateLimit(6); */
 
     sf::CircleShape cursor{10};
     cursor.setOrigin(10,10);
@@ -48,14 +50,12 @@ int main(int argc, char* argv[]) {
         std::make_shared<Linear>(10, 4),
         std::make_shared<Tanh>(4),
     };
-
     mother.initialize();
 
-    EA ea{50, mother, drone};
+    EA ea{6, mother, drone};
+    std::cout << "EA DONE" << std::endl;
 
-    sf::Clock clock;
-    sf::Time elapsed = clock.restart();
-    const sf::Time update_ms = sf::seconds(1.f / 120.f);
+    constexpr float dt = 1.f / 60.f;
     while (window.isOpen()) 
     {
         // EVENTS
@@ -112,13 +112,10 @@ int main(int argc, char* argv[]) {
         /* drone.thrusterRight.angleController = 1.0f; */
 
         // LOGIC
-        elapsed += clock.restart();
-        while (elapsed >= update_ms) 
-        {
-            ea.update(elapsed.asSeconds(), sf::Vector2f{win_width, win_height});
-            /* drone.update(elapsed.asSeconds(), sf::Vector2f{800,800}); */
-            elapsed -= update_ms;
-        }
+        ea.update(dt, sf::Vector2f{win_width, win_height});
+        window.close();
+        return 0;
+        /* drone.update(elapsed.asSeconds(), sf::Vector2f{800,800}); */
 
         goal.setPosition(ea.goals[ea.agents[0].get()->goalIndex]);
         renderer.draw(ea.agents[0].get(), window, state);
@@ -130,10 +127,6 @@ int main(int argc, char* argv[]) {
         if (ea.simFinished) {
             ea.process();
             std::cout << "EA DONE" << std::endl;
-
-            elapsed = sf::Time::Zero;
-            clock.restart();
-            std::cout << "restart" << std::endl;
         }
     }
     
