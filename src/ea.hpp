@@ -5,6 +5,7 @@
 #include <SFML/Graphics/BlendMode.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <iterator>
@@ -25,6 +26,7 @@ struct EA {
     bool simFinished = false;
 
     EA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize) { 
+        assert(popSize % 2 == 0 && "PopSize should be divisible by 2!");
         initPop(mother);
         initAgents(father);
         simFinished = false;
@@ -80,21 +82,35 @@ struct EA {
     }
 
     void process() {
+        fitnessAgents();
+        std::cout << "EA PROCESS" << std::endl;
+        auto selectedIds = tournamentSelection();
+        std::cout << "Tournament done" << std::endl;
+        auto offspringWeights = crossover(selectedIds);
+        std::cout << "Crossover done" << std::endl;
+        mutation(offspringWeights);
+        std::cout << "Mutation done" << std::endl;
+
+        populationW = offspringWeights;
 
         resetAgents();
+        std::cout << "Agents reseted" << std::endl;
         simFinished = false;
     }
 
 private:
     void initPop(const Net &mother) {
+        populationW.resize(popSize);
+
         for (int i = 0; i < popSize; ++i) {
             population.push_back(std::make_unique<Net>());
             population[i]->modules = mother.modules;
             population[i]->initialize();
+            populationW[i] = population[i]->getWeights();
         }
     }
 
-    std::vector<float> fitnessAgents() {
+    void fitnessAgents() {
         for (int i = 0; i < popSize; ++i) {
             fitness[i] = agents[i]->aliveCounter + 250*agents[i]->goalIndex;
         }
@@ -103,8 +119,6 @@ private:
         int argmax = std::distance(fitness.begin(), max);
         float maxValue = fitness[argmax];
         std::cout << "MaxFitness: " << maxValue << std::endl;
-
-        return fitness;
     }
 
     void initAgents(const Drone &father) {
@@ -116,33 +130,86 @@ private:
     }
 
     void resetAgents() {
-        for (auto && drone : agents) {
-            drone.reset();
+        for (int i = 0; i < popSize; ++i) {
+            agents[i]->reset();
+            population[i]->loadWeights(populationW[i]);
         }
     }
 
     std::vector<size_t> tournamentSelection() {
-        std::vector<size_t> selected_ids;
-        std::uniform_int_distribution<std::mt19937::result_type> distr(0, popSize);
-
+        std::vector<size_t> selectedIds{popSize};
+        std::uniform_int_distribution<std::mt19937::result_type> distr(0, popSize-1);
 
         const int tournamentSize = 2;
-        std::vector<float> tournamentFs;
-        std::vector<size_t> tournamentIds;
-        tournamentFs.resize(tournamentSize);
-        tournamentIds.resize(tournamentSize);
+        std::vector<float> tournamentFs{tournamentSize};
+        std::vector<size_t> tournamentIds{tournamentSize};
 
+        std::cout << "Selected ids" << std::endl;
         for (int i = 0; i < popSize; ++i) {
+            // running the tournament
             for (int x = 0; x < tournamentSize; ++x) {
                 auto id = distr(gen);
                 tournamentFs[x] = fitness[id];
                 tournamentIds[x] = id;
             }
 
+            auto maxFitness = std::max_element(tournamentFs.begin(), tournamentFs.end());
+            int argmax = std::distance(tournamentFs.begin(), maxFitness);
+
+            // selecte best one from current tournament
+            selectedIds[i] = tournamentIds[argmax];
+        }
+
+        return selectedIds;
+    }
+
+    std::vector<Weights> crossover(const std::vector<size_t> &selectedIds) {
+        std::uniform_real_distribution<float> distr(0.0f, 1.0f);
+
+        std::vector<Weights> newPopW(popSize);
+
+        for (int i = 0; i < popSize; i+=2) {
+            auto p1 = populationW[selectedIds[i]];
+            auto p2 = populationW[selectedIds[i+1]];
+
+            Weights o1(p1.size());
+            Weights o2(p2.size());
+
+            for (int k = 0; k < p1.size(); ++k) {
+                if (distr(gen) < 0.5) {
+                    o1[k] = p1[k];
+                    o2[k] = p2[k];
+                }
+                else {
+                    o1[k] = p2[k];
+                    o2[k] = p1[k];
+                }
+            }
+
+            newPopW[i] = o1;
+            newPopW[i+1] = o2;
+        }
+
+        return newPopW;
+    }
+
+    void mutation(std::vector<Weights> &offspringW) {
+        std::uniform_real_distribution<float> weightDistr(-1.0f, 1.0f);
+        std::uniform_real_distribution<float> chanceDistr(0.0f, 1.0f);
+
+        const float MUTPROB = 0.02;
+
+        for (int i = 0; i < popSize; ++i) {
+            for (int k = 0; k < offspringW[i].size(); ++k) {
+                if (chanceDistr(gen) < MUTPROB) {
+                    offspringW[i][k] = weightDistr(gen);
+                }
+            }
         }
     }
 
     std::vector<Individual> population;
+    std::vector<Weights> populationW;
     std::vector<float> fitness;
 
     const size_t popSize;

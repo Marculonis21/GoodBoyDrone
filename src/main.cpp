@@ -43,15 +43,15 @@ int main(int argc, char* argv[]) {
 
     Net mother;
     mother.modules = {
-        std::make_shared<Linear>(9, 16),
-        std::make_shared<ReLU>(16),
-        std::make_shared<Linear>(16, 4),
+        std::make_shared<Linear>(9, 10),
+        std::make_shared<ReLU>(10),
+        std::make_shared<Linear>(10, 4),
         std::make_shared<Tanh>(4),
     };
 
     mother.initialize();
 
-    EA ea{5, mother, drone};
+    EA ea{50, mother, drone};
 
     sf::Clock clock;
     sf::Time elapsed = clock.restart();
@@ -108,25 +108,32 @@ int main(int argc, char* argv[]) {
         /* drone.thrusterLeft.angleController = lheadingAngle - drone.angle; */
         /* drone.thrusterRight.angleController = rheadingAngle - drone.angle; */
 
+        /* drone.thrusterLeft.angleController = -1.0f; */
+        /* drone.thrusterRight.angleController = 1.0f; */
+
         // LOGIC
         elapsed += clock.restart();
         while (elapsed >= update_ms) 
         {
             ea.update(elapsed.asSeconds(), sf::Vector2f{win_width, win_height});
+            /* drone.update(elapsed.asSeconds(), sf::Vector2f{800,800}); */
             elapsed -= update_ms;
         }
 
         goal.setPosition(ea.goals[ea.agents[0].get()->goalIndex]);
         renderer.draw(ea.agents[0].get(), window, state);
+        /* renderer.draw(&drone, window, state); */
         window.draw(goal);
         window.display();
 
         // if at the end ea sim was finished, do the EA process, reset and the timing
         if (ea.simFinished) {
             ea.process();
+            std::cout << "EA DONE" << std::endl;
 
             elapsed = sf::Time::Zero;
             clock.restart();
+            std::cout << "restart" << std::endl;
         }
     }
     

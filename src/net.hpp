@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <iterator>
 #include <memory>
 #include <random>
 #include <vector>
@@ -13,7 +14,7 @@ using Output = std::vector<float>;
 using Weights = std::vector<float>;
 
 std::random_device rd;
-std::mt19937 gen(0);
+std::mt19937 gen;
 
 struct Module {
 
@@ -124,7 +125,18 @@ struct Net {
         return allWeights;
     }
 
-    void loadWeights(Weights weights) {
+    void loadWeights(const Weights &weights) {
+        size_t beginOffset = 0;
+
+        for (auto && mod : modules) {
+            auto start = weights.begin() + beginOffset;
+            auto end = weights.begin() + beginOffset + mod->weights.size();
+            beginOffset += mod->weights.size();
+
+            Weights subW(start, end);
+            mod->weights = subW;
+        }
+
     }
 
 private: 

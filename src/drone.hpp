@@ -112,8 +112,8 @@ struct Drone {
 		thrusterLeft.update(dt);
 		thrusterRight.update(dt);
 
-		/* const sf::Vector2f gravity{0, 10}; */
-		/* vel += gravity * dt; */
+		const sf::Vector2f gravity{0, 10};
+		vel += gravity * dt;
 
 		vel += getThrust() * dt;
         pos += vel;
@@ -125,6 +125,9 @@ struct Drone {
 	}
 
     void control(float lac, float lpc, float rac, float rpc) {
+        lpc = (lpc+1) * 0.5;
+        rpc = (rpc+1) * 0.5;
+
         thrusterLeft.control(lac, lpc);
         thrusterRight.control(rac, rpc);
     }

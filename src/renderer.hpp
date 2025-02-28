@@ -26,7 +26,7 @@ public:
     Renderer() {
         cBody = sf::Color(150,150,150);
         cCenter = sf::Color::Green;
-        cThrusterOn = sf::Color::Yellow;
+        cThrusterOn = sf::Color::Magenta;
         cThrusterOff = sf::Color::White;
 
         base = sf::RectangleShape(sf::Vector2f{100, 20});
