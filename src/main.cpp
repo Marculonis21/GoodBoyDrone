@@ -12,8 +12,10 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <SFML/Graphics.hpp>
+#include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -44,12 +46,11 @@ int main(int argc, char* argv[]) {
     Renderer renderer;
 
     Net mother;
-    mother.modules = {
-        std::make_shared<Linear>(9, 10),
-        std::make_shared<ReLU>(10),
-        std::make_shared<Linear>(10, 4),
-        std::make_shared<Tanh>(4),
-    };
+    mother.modules.push_back(std::make_unique<Linear>(9, 10));
+    mother.modules.push_back(std::make_unique<ReLU  >(10));
+    mother.modules.push_back(std::make_unique<Linear>(10, 4));
+    mother.modules.push_back(std::make_unique<Tanh  >(4));
+
     mother.initialize();
 
     EA ea{6, mother, drone};
@@ -66,56 +67,12 @@ int main(int argc, char* argv[]) {
                 window.close();
                 break;
             }
-
-            // MOUSE CONTROLS - I SUCK! 
-            /* if (event.type == sf::Event::MouseButtonPressed) { */
-            /*     std::cout << "pressed" << std::endl; */
-            /*     drone.thrusterLeft.powerController = 0.5; */
-            /*     drone.thrusterRight.powerController = 0.5; */
-            /* } */
-            /* else if (event.type == sf::Event::MouseButtonReleased) { */
-            /*     std::cout << "released" << std::endl; */
-            /*     drone.thrusterLeft.powerController = 0; */
-            /*     drone.thrusterRight.powerController = 0; */
-            /* } */
-
-            // TORQUE TESTS
-            /* if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Left)) { */
-            /*     drone.thrusterLeft.powerController = 1; */
-            /*     /1* drone.thrusterRight.powerController = 1; *1/ */
-            /* } */
-            /* else if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Right)) { */
-            /*     /1* drone.thrusterLeft.powerController = 1; *1/ */
-            /*     drone.thrusterRight.powerController = 1; */
-            /* } */
-            /* else { */
-            /*     drone.thrusterLeft.powerController = 0; */
-            /*     drone.thrusterRight.powerController = 0; */
-            /* } */
         }
 
         window.clear();
 
-        /* auto mp = sf::Mouse::getPosition(window); */
-        /* cursor.setPosition(mp.x, mp.y); */
-        /* window.draw(cursor); */
-
-        // TESTING THRUSTER ANGLECONTROLLER CONTROLS 
-        /* const sf::Vector2f lheading = sf::Vector2f{mp} - (drone.pos - drone.thrusterOffset); */
-        /* const sf::Vector2f rheading = sf::Vector2f{mp} - (drone.pos + drone.thrusterOffset); */
-        /* const float lheadingAngle = atan2(lheading.y, lheading.x) + M_PI * 0.5f; */
-        /* const float rheadingAngle = atan2(rheading.y, rheading.x) + M_PI * 0.5f; */
-        /* drone.thrusterLeft.angleController = lheadingAngle - drone.angle; */
-        /* drone.thrusterRight.angleController = rheadingAngle - drone.angle; */
-
-        /* drone.thrusterLeft.angleController = -1.0f; */
-        /* drone.thrusterRight.angleController = 1.0f; */
-
         // LOGIC
         ea.update(dt, sf::Vector2f{win_width, win_height});
-        window.close();
-        return 0;
-        /* drone.update(elapsed.asSeconds(), sf::Vector2f{800,800}); */
 
         goal.setPosition(ea.goals[ea.agents[0].get()->goalIndex]);
         renderer.draw(ea.agents[0].get(), window, state);

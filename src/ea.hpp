@@ -101,8 +101,10 @@ struct EA {
 
 		for (int i = 0; i < popSize; ++i) {
 			population.push_back(std::make_unique<Net>());
-			// here in lies the problem... 
-			population[i]->modules = mother.modules;
+
+			for (const auto & mod : mother.modules) {
+				population[i]->modules.push_back(mod->clone());
+			}
 
 			population[i]->initialize();
 			populationW[i] = population[i]->getWeights();

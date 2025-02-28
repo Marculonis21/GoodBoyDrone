@@ -33,6 +33,7 @@ struct Module {
 
     virtual void initialize() = 0;
     virtual Output forward(const Input &input) = 0;
+    virtual std::unique_ptr<Module> clone() const = 0;
 };
 
 
@@ -63,6 +64,10 @@ struct Linear : public Module {
         }
         return mockOutput;
     }
+
+    std::unique_ptr<Module> clone() const override {
+        return std::make_unique<Linear>(*this);
+    }
 };
 
 struct ReLU : public Module {
@@ -75,6 +80,10 @@ struct ReLU : public Module {
             mockOutput[i] = std::max(0.0f, input[i]);
         }
         return mockOutput;
+    }
+
+    std::unique_ptr<Module> clone() const override {
+        return std::make_unique<ReLU>(*this);
     }
 };
 
@@ -89,11 +98,15 @@ struct Tanh : public Module {
         }
         return mockOutput;
     }
+
+    std::unique_ptr<Module> clone() const override {
+        return std::make_unique<Tanh>(*this);
+    }
 };
 
 
 struct Net {
-    std::vector<std::shared_ptr<Module>> modules;
+    std::vector<std::unique_ptr<Module>> modules;
 
     Net() {}
 

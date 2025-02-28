@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <math.h>
-#include <vector>
 
 struct Thruster {
 	float angleController;
