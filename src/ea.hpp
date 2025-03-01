@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <random>
 #include <vector>
@@ -27,6 +28,12 @@ struct EA {
 	EA(size_t popSize, const Net &mother, const Drone &father)
 		: popSize(popSize) {
 		assert(popSize % 2 == 0 && "PopSize should be divisible by 2!");
+
+		population.reserve(popSize);
+		populationW.reserve(popSize);
+		agents.reserve(popSize);
+		fitness.resize(popSize);
+
 		initPop(mother);
 		initAgents(father);
 		simFinished = false;
@@ -43,16 +50,19 @@ struct EA {
 
 		bool someAlive = false;
 
+		Drone* drone;
+		Net* net;
+
 		for (int i = 0; i < popSize; ++i) {
-			auto drone = agents[i].get();
-			auto net = population[i].get();
+			drone = agents[i].get();
+			net = population[i].get();
 
 			drone->update(dt, boundary);
 
 			if (!drone->alive) continue;
 			someAlive = true;
 
-			goalDist = goals[drone->goalIndex] - drone->pos;
+			goalDist = goals[drone->goalIndex % goals.size()] - drone->pos;
 			observation = {
 				drone->pos.x / 800,
 				drone->pos.y / 800,
@@ -65,7 +75,21 @@ struct EA {
 				goalDist.y / 800
 			};
 
+			if (goalDist.x*goalDist.x + goalDist.y*goalDist.y < 100) {
+				drone->goalTimer += 1;
+				// half a second for 60 fps game physics
+				if (drone->goalTimer > 30) {
+					drone->goalTimer = 0;
+					drone->goalIndex += 1;
+				}
+			}
+			else {
+				drone->goalTimer = 0;
+			}
+			fitness[i] += 1.0f/((abs(goalDist.x)/800) + 1) + 1.0f/((abs(goalDist.y)/800) + 1);
+
 			output = net->predict(observation);
+			assert(output.size() == 4 && "Drone expects 4 net outputs");
 			drone->control(output[0], output[1], output[2], output[3]);
 		}
 
@@ -75,9 +99,11 @@ struct EA {
 	}
 
 	void process() {
-		size_t bestID = fitnessAgents();
-		std::cout << bestID << std::endl;
-		Weights elite = populationW[bestID];
+		auto elite = fitnessAgents();
+		std::vector<Weights> eliteW;
+		for (auto i : elite) {
+			eliteW.push_back(populationW[i]);
+		}
 
 		std::cout << "EA PROCESS" << std::endl;
 		auto selectedIds = tournamentSelection();
@@ -88,7 +114,11 @@ struct EA {
 		std::cout << "Mutation done" << std::endl;
 
 		populationW = offspringWeights;
-		populationW[0] = elite;
+
+		for (int i = 0; i < eliteW.size(); ++i) {
+			populationW[i] = eliteW[i];
+		}
+		std::cout << "Elite size: " << eliteW.size() << std::endl;
 
 		resetAgents();
 		std::cout << "Agents reseted" << std::endl;
@@ -97,8 +127,6 @@ struct EA {
 
   private:
 	void initPop(const Net &mother) {
-		populationW.resize(popSize);
-
 		for (int i = 0; i < popSize; ++i) {
 			population.push_back(std::make_unique<Net>());
 
@@ -107,62 +135,76 @@ struct EA {
 			}
 
 			population[i]->initialize();
-			populationW[i] = population[i]->getWeights();
+			populationW.push_back(population[i]->getWeights());
 		}
 	}
 
-	size_t fitnessAgents() {
+	// return an elite vector
+	std::vector<size_t> fitnessAgents() {
+		std::vector<size_t> eliteIds;
+
 		for (int i = 0; i < popSize; ++i) {
-			fitness[i] = agents[i]->aliveCounter + 500 * agents[i]->goalIndex;
-			std::cout << fitness[i] << std::endl;
+			/* fitness[i] = agents[i]->aliveTimer + 1000 * agents[i]->goalIndex; */
+			fitness[i] += 1000 * agents[i]->goalIndex;
 		}
 
-		auto max = std::max_element(fitness.begin(), fitness.end());
-		int argmax = std::distance(fitness.begin(), max);
-		std::cout << argmax << std::endl;
-		std::cout << "MaxFitness: " << *max << std::endl;
-		return argmax;
+		const int eliteSize = popSize*0.05;
+		std::vector<float> sortedFitness(eliteSize); //largest n numbers; VLA or std::dynarray in C++14
+		std::partial_sort_copy(
+			std::begin(fitness), std::end(fitness), //.begin/.end in C++98/C++03
+			std::begin(sortedFitness), std::end(sortedFitness), 
+			std::greater() 
+		);
+
+		/* auto max = std::max_element(fitness.begin(), fitness.end()); */
+		/* int argmax = std::distance(fitness.begin(), max); */
+		std::cout << "MaxFitness: " << sortedFitness[0] << std::endl;
+
+		for (auto sf : sortedFitness) {
+			size_t i = std::find(fitness.begin(), fitness.end(), sf) - fitness.begin();
+			eliteIds.push_back(i);
+		}
+		return eliteIds;
 	}
 
 	void initAgents(const Drone &father) {
 		for (int i = 0; i < popSize; ++i) {
 			agents.push_back(std::make_unique<Drone>(father.startPos));
 		}
-
-		fitness.resize(popSize);
 	}
 
 	void resetAgents() {
 		for (int i = 0; i < popSize; ++i) {
 			agents[i]->reset();
 			population[i]->loadWeights(populationW[i]);
+			fitness[i] = 0;
 		}
 	}
 
 	std::vector<size_t> tournamentSelection() {
-		std::vector<size_t> selectedIds{popSize};
-		std::uniform_int_distribution<std::mt19937::result_type> distr(
-			0, popSize - 1);
+		std::uniform_int_distribution<std::mt19937::result_type> distr(0, popSize - 1);
+
+		std::vector<size_t> selectedIds;
+		selectedIds.reserve(popSize);
 
 		const int tournamentSize = 2;
-		std::vector<float> tournamentFs{tournamentSize};
-		std::vector<size_t> tournamentIds{tournamentSize};
 
-		std::cout << "Selected ids" << std::endl;
+		size_t bestId;
+		float bestFitness;
+		size_t id;
 		for (int i = 0; i < popSize; ++i) {
 			// running the tournament
+			bestId = -1;
+			bestFitness = std::numeric_limits<float>::min();
 			for (int x = 0; x < tournamentSize; ++x) {
-				auto id = distr(gen);
-				tournamentFs[x] = fitness[id];
-				tournamentIds[x] = id;
+				id = distr(gen);
+				if (fitness[id] > bestFitness) {
+					bestFitness = fitness[id];
+					bestId = id;
+				}
 			}
 
-			auto maxFitness =
-				std::max_element(tournamentFs.begin(), tournamentFs.end());
-			int argmax = std::distance(tournamentFs.begin(), maxFitness);
-
-			// selecte best one from current tournament
-			selectedIds[i] = tournamentIds[argmax];
+			selectedIds[i] = bestId;
 		}
 
 		return selectedIds;
@@ -171,27 +213,30 @@ struct EA {
 	std::vector<Weights> crossover(const std::vector<size_t> &selectedIds) {
 		std::uniform_real_distribution<float> distr(0.0f, 1.0f);
 
-		std::vector<Weights> newPopW(popSize);
+		std::vector<Weights> newPopW;
+		newPopW.reserve(popSize);
 
 		for (int i = 0; i < popSize; i += 2) {
-			auto p1 = populationW[selectedIds[i]];
-			auto p2 = populationW[selectedIds[i + 1]];
+			Weights p1 = populationW[selectedIds[i]];
+			Weights p2 = populationW[selectedIds[i + 1]];
 
-			Weights o1(p1.size());
-			Weights o2(p2.size());
+			Weights o1;
+			Weights o2;
+			o1.reserve(p1.size());
+			o2.reserve(p2.size());
 
 			for (int k = 0; k < p1.size(); ++k) {
 				if (distr(gen) < 0.5) {
-					o1[k] = p1[k];
-					o2[k] = p2[k];
+					o1.push_back(p1[k]);
+					o2.push_back(p2[k]);
 				} else {
-					o1[k] = p2[k];
-					o2[k] = p1[k];
+					o1.push_back(p2[k]);
+					o2.push_back(p1[k]);
 				}
 			}
 
-			newPopW[i] = o1;
-			newPopW[i + 1] = o2;
+			newPopW.push_back(o1);
+			newPopW.push_back(o2);
 		}
 
 		return newPopW;
@@ -201,7 +246,7 @@ struct EA {
 		std::uniform_real_distribution<float> weightDistr(-1.0f, 1.0f);
 		std::uniform_real_distribution<float> chanceDistr(0.0f, 1.0f);
 
-		const float MUTPROB = 1.0;
+		const float MUTPROB = 0.05;
 
 		for (int i = 0; i < popSize; ++i) {
 			for (int k = 0; k < offspringW[i].size(); ++k) {

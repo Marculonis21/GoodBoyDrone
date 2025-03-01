@@ -14,8 +14,8 @@ using Input = std::vector<float>;
 using Output = std::vector<float>;
 using Weights = std::vector<float>;
 
-std::random_device rd;
-std::mt19937 gen;
+inline std::random_device rd;
+inline std::mt19937 gen(time(nullptr));
 
 struct Module {
 
@@ -113,21 +113,21 @@ struct Net {
     void initialize() {
         this->initialized = true;
 
+        /* values.resize(modules[0]->in); */
+
         for (auto && mod : modules) {
             mod->initialize();
         }
     }
 
-    Output predict(const Input &input) const {
+    Output predict(Input input) const {
         assert(input.size() == modules[0]->in && "Size of observation != net input");
 
-        Input vals = input;
-
         for (auto && mod : modules) {
-            vals = mod->forward(vals);
+            input = mod->forward(input);
         }
 
-        return vals;
+        return input;
     }
 
     Weights getWeights() {

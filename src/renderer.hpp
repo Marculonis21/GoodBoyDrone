@@ -19,6 +19,7 @@ class Renderer {
 
     sf::Color cBody;
     sf::Color cCenter;
+    sf::Color cCenterCollect;
     sf::Color cThrusterOn;
     sf::Color cThrusterOff;
 
@@ -26,6 +27,7 @@ public:
     Renderer() {
         cBody = sf::Color(150,150,150);
         cCenter = sf::Color::Green;
+        cCenterCollect = sf::Color(100,255,100);
         cThrusterOn = sf::Color::Magenta;
         cThrusterOff = sf::Color::White;
 
@@ -76,6 +78,12 @@ public:
 
         base.setRotation(RAD_TO_DEG * drone->angle);
         center.setRotation(RAD_TO_DEG * drone->angle);
+        if (drone->goalTimer > 0) {
+            center.setFillColor(cCenterCollect);
+        }
+        else {
+            center.setFillColor(cCenter);
+        }
 
         thrusterLeft.setRotation(RAD_TO_DEG * (drone->angle + drone->thrusterLeft.angle));
         thrusterRight.setRotation(RAD_TO_DEG * (drone->angle + drone->thrusterRight.angle));

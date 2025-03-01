@@ -28,6 +28,8 @@ int main(int argc, char* argv[]) {
 	sf::RenderWindow window(sf::VideoMode(win_width, win_height), "SFML - GoodBoyDrone", sf::Style::Default, settings);
     sf::RenderStates state;
 
+    const sf::Vector2f boundary{win_width, win_height};
+
     window.setMouseCursorVisible(false);
     window.setVerticalSyncEnabled(true);
     /* window.setFramerateLimit(6); */
@@ -46,21 +48,24 @@ int main(int argc, char* argv[]) {
     Renderer renderer;
 
     Net mother;
-    mother.modules.push_back(std::make_unique<Linear>(9, 10));
-    mother.modules.push_back(std::make_unique<ReLU  >(10));
-    mother.modules.push_back(std::make_unique<Linear>(10, 4));
+    mother.modules.push_back(std::make_unique<Linear>(9, 16));
+    mother.modules.push_back(std::make_unique<Tanh>(16));
+    mother.modules.push_back(std::make_unique<Linear>(16, 8));
+    mother.modules.push_back(std::make_unique<Tanh>(8));
+    mother.modules.push_back(std::make_unique<Linear>(8, 4));
     mother.modules.push_back(std::make_unique<Tanh  >(4));
 
     mother.initialize();
 
-    EA ea{6, mother, drone};
+    EA ea{100, mother, drone};
     std::cout << "EA DONE" << std::endl;
+    size_t generation = 0;
 
     constexpr float dt = 1.f / 60.f;
+    sf::Event event;
     while (window.isOpen()) 
     {
         // EVENTS
-        sf::Event event;
         while (window.pollEvent(event)) {
             if ((event.type == sf::Event::Closed) ||
                     ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Escape))) {
@@ -71,19 +76,28 @@ int main(int argc, char* argv[]) {
 
         window.clear();
 
-        // LOGIC
-        ea.update(dt, sf::Vector2f{win_width, win_height});
+        // EA LOGIC
+        ea.update(dt, boundary);
 
-        goal.setPosition(ea.goals[ea.agents[0].get()->goalIndex]);
-        renderer.draw(ea.agents[0].get(), window, state);
-        /* renderer.draw(&drone, window, state); */
+        goal.setPosition(ea.goals[ea.agents.at(0)->goalIndex]);
+        renderer.draw(ea.agents.at(0).get(), window, state);
         window.draw(goal);
-        window.display();
+
+        // SINGLE LOGIC
+        /* drone.update(dt, boundary); */
+        /* renderer.draw(&drone, window, state); */
+
+        if (generation % 500 == 0) {
+            window.display();
+        }
 
         // if at the end ea sim was finished, do the EA process, reset and the timing
         if (ea.simFinished) {
+            std::cout << "EA PROCESS START" << std::endl;
             ea.process();
             std::cout << "EA DONE" << std::endl;
+            generation += 1;
+            std::cout << "Gen: " << generation << std::endl;
         }
     }
     
