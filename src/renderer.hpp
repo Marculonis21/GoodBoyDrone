@@ -27,7 +27,7 @@ public:
     Renderer() {
         cBody = sf::Color(150,150,150);
         cCenter = sf::Color::Green;
-        cCenterCollect = sf::Color(100,255,100);
+        cCenterCollect = sf::Color(200,255,200);
         cThrusterOn = sf::Color::Magenta;
         cThrusterOff = sf::Color::White;
 

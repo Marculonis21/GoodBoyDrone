@@ -38,12 +38,22 @@ struct EA {
 		initAgents(father);
 		simFinished = false;
 
-		goals = {sf::Vector2f{200, 200}, sf::Vector2f{200, 600},
-				 sf::Vector2f{600, 600}, sf::Vector2f{600, 200},
-				 sf::Vector2f{400, 400}};
+		// original having a problem with sides
+		/* goals = {sf::Vector2f{200, 200}, */ 
+		/* 	sf::Vector2f{200, 600}, */
+		/* 	sf::Vector2f{600, 600}, */ 
+		/* 	sf::Vector2f{600, 200}, */
+		/* 	sf::Vector2f{400, 400}}; */
+		goals = {
+			sf::Vector2f{200, 200}, 
+			sf::Vector2f{600, 600}, 
+			sf::Vector2f{200, 600},
+			sf::Vector2f{600, 200},
+			sf::Vector2f{400, 400}
+		};
 	}
 
-	void update(const float dt, const sf::Vector2f &boundary) {
+	void update(const float dt, const sf::Vector2f &boundary, bool debug=false) {
 		sf::Vector2f goalDist;
 		std::vector<float> observation;
 		Output output;
@@ -77,16 +87,31 @@ struct EA {
 
 			if (goalDist.x*goalDist.x + goalDist.y*goalDist.y < 100) {
 				drone->goalTimer += 1;
-				// half a second for 60 fps game physics
+				// half a second for 60 fps game physics - GOAL COLLECTED
 				if (drone->goalTimer > 30) {
 					drone->goalTimer = 0;
 					drone->goalIndex += 1;
+
+					// reward for quickly obtaining the goal
+					fitness[i] += (drone->goalIndex+1)*(600 - drone->aliveTimer);
+					drone->aliveTimer = 0;
 				}
 			}
 			else {
 				drone->goalTimer = 0;
 			}
-			fitness[i] += 1.0f/((abs(goalDist.x)/800) + 1) + 1.0f/((abs(goalDist.y)/800) + 1);
+			/* fitness[i] += (drone->goalIndex+1)*(1.0f/((abs(goalDist.x)/800) + 1) + 1.0f/((abs(goalDist.y)/800) + 1)); */
+
+			fitness[i] += (drone->goalIndex+1)*(exp(-abs(goalDist.x)/800) + exp(-abs(goalDist.y)/800));
+
+			if (debug) {
+				if (i == 0) {
+					std::cout << "DEBUG:" << std::endl;
+					std::cout << "GD: " << goalDist.x/800 << "," << goalDist.y/800 << std::endl;
+					std::cout << "FGD: " << (1.0f/((abs(goalDist.x)/800) + 1) + 1.0f/((abs(goalDist.y)/800) + 1)) << std::endl;
+					std::cout << "FGDn: " << (drone->goalIndex+1)*(exp(-abs(goalDist.x)/800) + exp(-abs(goalDist.y)/800)) << std::endl;
+				}
+			}
 
 			output = net->predict(observation);
 			assert(output.size() == 4 && "Drone expects 4 net outputs");
@@ -105,23 +130,23 @@ struct EA {
 			eliteW.push_back(populationW[i]);
 		}
 
-		std::cout << "EA PROCESS" << std::endl;
+		/* std::cout << "EA PROCESS" << std::endl; */
 		auto selectedIds = tournamentSelection();
-		std::cout << "Tournament done" << std::endl;
+		/* std::cout << "Tournament done" << std::endl; */
 		auto offspringWeights = crossover(selectedIds);
-		std::cout << "Crossover done" << std::endl;
+		/* std::cout << "Crossover done" << std::endl; */
 		mutation(offspringWeights);
-		std::cout << "Mutation done" << std::endl;
+		/* std::cout << "Mutation done" << std::endl; */
 
 		populationW = offspringWeights;
 
 		for (int i = 0; i < eliteW.size(); ++i) {
 			populationW[i] = eliteW[i];
 		}
-		std::cout << "Elite size: " << eliteW.size() << std::endl;
+		/* std::cout << "Elite size: " << eliteW.size() << std::endl; */
 
 		resetAgents();
-		std::cout << "Agents reseted" << std::endl;
+		/* std::cout << "Agents reseted" << std::endl; */
 		simFinished = false;
 	}
 
@@ -144,14 +169,13 @@ struct EA {
 		std::vector<size_t> eliteIds;
 
 		for (int i = 0; i < popSize; ++i) {
-			/* fitness[i] = agents[i]->aliveTimer + 1000 * agents[i]->goalIndex; */
 			fitness[i] += 1000 * agents[i]->goalIndex;
 		}
 
 		const int eliteSize = popSize*0.05;
-		std::vector<float> sortedFitness(eliteSize); //largest n numbers; VLA or std::dynarray in C++14
+		std::vector<float> sortedFitness(eliteSize); //largest n numbers
 		std::partial_sort_copy(
-			std::begin(fitness), std::end(fitness), //.begin/.end in C++98/C++03
+			std::begin(fitness), std::end(fitness), 
 			std::begin(sortedFitness), std::end(sortedFitness), 
 			std::greater() 
 		);
@@ -246,7 +270,7 @@ struct EA {
 		std::uniform_real_distribution<float> weightDistr(-1.0f, 1.0f);
 		std::uniform_real_distribution<float> chanceDistr(0.0f, 1.0f);
 
-		const float MUTPROB = 0.05;
+		const float MUTPROB = 0.03;
 
 		for (int i = 0; i < popSize; ++i) {
 			for (int k = 0; k < offspringW[i].size(); ++k) {

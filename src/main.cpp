@@ -50,9 +50,9 @@ int main(int argc, char* argv[]) {
     Net mother;
     mother.modules.push_back(std::make_unique<Linear>(9, 16));
     mother.modules.push_back(std::make_unique<Tanh>(16));
-    mother.modules.push_back(std::make_unique<Linear>(16, 8));
-    mother.modules.push_back(std::make_unique<Tanh>(8));
-    mother.modules.push_back(std::make_unique<Linear>(8, 4));
+    /* mother.modules.push_back(std::make_unique<Linear>(16, 16)); */
+    /* mother.modules.push_back(std::make_unique<Tanh>(8)); */
+    mother.modules.push_back(std::make_unique<Linear>(16, 4));
     mother.modules.push_back(std::make_unique<Tanh  >(4));
 
     mother.initialize();
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
         window.clear();
 
         // EA LOGIC
-        ea.update(dt, boundary);
+        ea.update(dt, boundary, generation % 500 == 0);
 
         goal.setPosition(ea.goals[ea.agents.at(0)->goalIndex]);
         renderer.draw(ea.agents.at(0).get(), window, state);

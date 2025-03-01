@@ -145,6 +145,6 @@ private:
                pos.y < 0 || pos.y > boundary.y ||
                angle < -M_PI * 0.5f || 
                angle > +M_PI * 0.5f ||
-               aliveTimer > 500*(goalIndex+1);
+               aliveTimer > 600;
     }
 };
