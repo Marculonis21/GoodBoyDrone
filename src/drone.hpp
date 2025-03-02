@@ -1,15 +1,16 @@
 #pragma once
 
+#include "utils.hpp"
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 #include <limits>
 #include <math.h>
 #include <vector>
 #include <memory>
+#include <iostream>
 
 struct Thruster {
 	float angleController;
@@ -53,10 +54,12 @@ struct Drone {
 
         Sensor(float angle, float length) : angle(angle), length(length) { }
 
-        float check(const Drone* from, const std::vector<sf::CircleShape> &walls, const std::vector<std::unique_ptr<Drone>> &drones) const {
+        float check(const Drone* from, 
+                    const std::vector<Wall> &walls, 
+                    const std::vector<std::unique_ptr<Drone>> &drones) const {
             sf::Vector2f dir{cos(angle+from->angle), sin(angle+from->angle)};
 
-            // march
+            // ray march - here we goooo!
             sf::Vector2f test = from->pos + dir*from->contactRadius;
 
             float checked = 0;
@@ -64,10 +67,7 @@ struct Drone {
                 float closest = std::numeric_limits<float>::max();
                 float check;
                 for (auto && w : walls) {
-                    check = dist(w.getPosition() - test) - w.getRadius();
-                    /* std::cout << "check" << w.getPosition().x << "," << w.getPosition().y<< std::endl; */
-                    /* std::cout << "check" << w.getRadius() << std::endl; */
-                    /* std::cout << dist(w.getPosition() - test) << std::endl; */
+                    check = dist(w.pos - test) - w.radius;
                     if (check < closest) {
                         closest = check;
                     }
@@ -99,14 +99,14 @@ struct Drone {
 
 	Thruster thrusterLeft, thrusterRight;
     std::vector<Sensor> sensors = {
-        Sensor{M_PI*0.00, 100},
-        Sensor{M_PI*0.25, 100},
-        Sensor{M_PI*0.50, 100},
-        Sensor{M_PI*0.75, 100},
-        Sensor{M_PI*1.00, 100},
-        Sensor{M_PI*1.25, 100},
-        Sensor{M_PI*1.50, 100},
-        Sensor{M_PI*1.75, 100},
+        Sensor{M_PI*0.00, 200},
+        Sensor{M_PI*0.25, 200},
+        Sensor{M_PI*0.50, 200},
+        Sensor{M_PI*0.75, 200},
+        Sensor{M_PI*1.00, 200},
+        Sensor{M_PI*1.25, 200},
+        Sensor{M_PI*1.50, 200},
+        Sensor{M_PI*1.75, 200}
     };
 
 	const float contactRadius = 60;
@@ -168,15 +168,15 @@ struct Drone {
         return (lTorque + rTorque)*momentOfInertia;
     }
 
-    void update(const float dt, const sf::Vector2f &boundary) {
+    void update(const float dt, const sf::Vector2f &boundary, const std::vector<Wall> &walls) {
         if (!alive) return;
         aliveTimer += 1;
 
 		thrusterLeft.update(dt);
 		thrusterRight.update(dt);
 
-		/* const sf::Vector2f gravity{0, 10}; */
-		/* vel += gravity * dt; */
+		const sf::Vector2f gravity{0, 10};
+		vel += gravity * dt;
 
 		vel += getThrust() * dt;
         pos += vel;
@@ -185,6 +185,15 @@ struct Drone {
         angle += angularVel;
 
         alive = !wait_he_should_be_already_dead(boundary);
+        for (auto && w : walls) {
+            auto v = w.pos - this->pos;
+            float dist = (v.x*v.x)+(v.y*v.y);
+            float minDist = w.radius + this->contactRadius;
+            if (dist < minDist*minDist) {
+                alive = false;
+                return;
+            }
+        }
 	}
 
     void control(float lac, float lpc, float rac, float rpc) {

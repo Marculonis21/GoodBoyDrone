@@ -4,18 +4,15 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
-#include <iterator>
 #include <memory>
 #include <random>
 #include <vector>
-#include <iostream>
+
+#include "utils.hpp"
 
 using Input = std::vector<float>;
 using Output = std::vector<float>;
 using Weights = std::vector<float>;
-
-inline std::random_device rd;
-inline std::mt19937 gen(time(nullptr));
 
 struct Module {
 
@@ -112,8 +109,6 @@ struct Net {
 
     void initialize() {
         this->initialized = true;
-
-        /* values.resize(modules[0]->in); */
 
         for (auto && mod : modules) {
             mod->initialize();

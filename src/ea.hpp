@@ -22,13 +22,13 @@
 using Individual = std::unique_ptr<Net>;
 using Agent = std::unique_ptr<Drone>;
 
-constexpr float HALF_PI = M_PI * 0.5f;
-
 struct EA {
 	std::vector<sf::Vector2f> goals;
 	std::vector<sf::CircleShape> walls;
 	std::vector<Agent> agents;
 	bool simFinished = false;
+
+	float lastMaxFitness = 0;
 
 	EA(size_t popSize, const Net &mother, const Drone &father)
 		: popSize(popSize) {
@@ -43,18 +43,22 @@ struct EA {
 		initAgents(father);
 		simFinished = false;
 
-		// original having a problem with sides
-		/* goals = {sf::Vector2f{200, 200}, */ 
-		/* 	sf::Vector2f{200, 600}, */
-		/* 	sf::Vector2f{600, 600}, */ 
-		/* 	sf::Vector2f{600, 200}, */
-		/* 	sf::Vector2f{400, 400}}; */
-
+		this->goals = {
+			sf::Vector2f{200, 200}, 
+			sf::Vector2f{600, 600}, 
+			sf::Vector2f{200, 600},
+			sf::Vector2f{600, 200},
+			sf::Vector2f{400, 650}
+		};
 	}
 
-	void update(const float dt, const sf::Vector2f &boundary, bool debug=false) {
+	void update(const float dt, const sf::Vector2f &boundary, const std::vector<Wall> &walls, bool debug=false) {
 		sf::Vector2f goalDist;
+
+		// WARN: observation size is important for memory!
 		std::vector<float> observation;
+		observation.resize(13);
+
 		Output output;
 
 		bool someAlive = false;
@@ -66,19 +70,23 @@ struct EA {
 			drone = agents[i].get();
 			net = population[i].get();
 
-			drone->update(dt, boundary);
+			drone->update(dt, boundary, walls);
 
 			if (!drone->alive) continue;
 			someAlive = true;
 
 			goalDist = goals[drone->goalIndex % goals.size()] - drone->pos;
-			observation = {
-				drone->vel.x / 20.0f,
-				drone->vel.y / 20.0f,
-				(drone->angle) / HALF_PI,
-				goalDist.x / 800,
-				goalDist.y / 800
-			};
+
+			// creating observations 
+			// WARN: take care of the observation size
+			observation[0] = drone->vel.x / 20.0f;
+			observation[1] = drone->vel.y / 20.0f;
+			observation[2] = (drone->angle) / HALF_PI;
+			observation[3] = goalDist.x / 800;
+			observation[4] = goalDist.y / 800;
+			for (int s = 0; s < drone->sensors.size(); ++s) {
+				observation[5+s] = 1 - drone->sensors[s].check(drone, walls, {});
+			}
 
 			if (goalDist.x*goalDist.x + goalDist.y*goalDist.y < 100) {
 				drone->goalTimer += 1;
@@ -106,6 +114,12 @@ struct EA {
 					std::cout << "DEBUG:" << std::endl;
 					std::cout << "GD: " << goalDist.x/800 << "," << goalDist.y/800 << std::endl;
 					std::cout << "FGD: " << (drone->goalIndex+1)*(expGx + expGy) << std::endl;
+
+					std::cout << "Sensors: ["; 
+					for (int i = 0; i < 8; ++i) {
+						std::cout << observation[5+i] << ", ";
+					}
+					std::cout << "]" << std::endl;
 				}
 			}
 
@@ -176,9 +190,7 @@ struct EA {
 			std::greater() 
 		);
 
-		/* auto max = std::max_element(fitness.begin(), fitness.end()); */
-		/* int argmax = std::distance(fitness.begin(), max); */
-		std::cout << "MaxFitness: " << sortedFitness[0] << std::endl;
+		lastMaxFitness = sortedFitness[0];
 
 		for (auto sf : sortedFitness) {
 			size_t i = std::find(fitness.begin(), fitness.end(), sf) - fitness.begin();
@@ -266,7 +278,7 @@ struct EA {
 		std::uniform_real_distribution<float> weightDistr(-1.0f, 1.0f);
 		std::uniform_real_distribution<float> chanceDistr(0.0f, 1.0f);
 
-		const float MUTPROB = 0.03;
+		const float MUTPROB = 0.025;
 
 		for (int i = 0; i < popSize; ++i) {
 			for (int k = 0; k < offspringW[i].size(); ++k) {
@@ -282,26 +294,4 @@ struct EA {
 	std::vector<float> fitness;
 
 	const size_t popSize;
-
-private: 
-	void scenario_default() {
-		this->goals = {
-			sf::Vector2f{200, 200}, 
-			sf::Vector2f{600, 600}, 
-			sf::Vector2f{200, 600},
-			sf::Vector2f{600, 200},
-			sf::Vector2f{400, 400}
-		};
-		this->walls = {};
-	}
-
-	void scenario_default_with_walls() {
-		this->goals = {
-			sf::Vector2f{200, 200}, 
-			sf::Vector2f{600, 600}, 
-			sf::Vector2f{200, 600},
-			sf::Vector2f{600, 200},
-			sf::Vector2f{400, 400}
-		};
-	}
 };
