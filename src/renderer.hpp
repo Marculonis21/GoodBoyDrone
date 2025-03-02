@@ -6,6 +6,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/System/Vector2.hpp>
 #include "drone.hpp"
+#include <iostream>
 
 constexpr double RAD_TO_DEG = 57.295779513082320876798154814105;
 
@@ -102,6 +103,34 @@ public:
         }
         else {
             thrusterLeftBottom.setFillColor(cThrusterOff);
+        }
+
+        for (auto && s : drone->sensors) {
+            sf::Vector2f dir{cos(drone->angle+s.angle), sin(drone->angle+s.angle)};
+
+            std::vector<sf::CircleShape> walls {
+                sf::CircleShape(500)
+            };
+            /* walls[0].setOrigin(450,450); */
+            walls[0].setPosition(0,0);
+            walls[0].setFillColor(sf::Color::Green);
+            /* target.draw(walls[0]); */
+
+
+            float len = s.check(drone, walls, {});
+            std::cout << len << std::endl;
+
+            sf::Vector2f start = drone->pos + dir*drone->contactRadius;
+            sf::Vector2f endMax = drone->pos + dir*(drone->contactRadius + s.length);
+            sf::Vertex lineMax [] = {{{start.x, start.y}, sf::Color::White}, {{endMax.x, endMax.y}, sf::Color::White}};
+            target.draw(lineMax, 2, sf::Lines, state);
+
+            if (len < 1.0) {
+                sf::Vector2f endCurr = drone->pos + dir*(drone->contactRadius + len*s.length);
+                sf::Vertex lineCurr[] = {{{start.x, start.y}, sf::Color::Red}, {{endCurr.x, endCurr.y}, sf::Color::Red}};
+                target.draw(lineCurr, 2, sf::Lines, state);
+            }
+
         }
 
         target.draw(base, state);

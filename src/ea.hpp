@@ -3,16 +3,20 @@
 #include "drone.hpp"
 #include "net.hpp"
 #include <SFML/Graphics/BlendMode.hpp>
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <memory>
 #include <random>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 using Individual = std::unique_ptr<Net>;
@@ -22,6 +26,7 @@ constexpr float HALF_PI = M_PI * 0.5f;
 
 struct EA {
 	std::vector<sf::Vector2f> goals;
+	std::vector<sf::CircleShape> walls;
 	std::vector<Agent> agents;
 	bool simFinished = false;
 
@@ -44,13 +49,7 @@ struct EA {
 		/* 	sf::Vector2f{600, 600}, */ 
 		/* 	sf::Vector2f{600, 200}, */
 		/* 	sf::Vector2f{400, 400}}; */
-		goals = {
-			sf::Vector2f{200, 200}, 
-			sf::Vector2f{600, 600}, 
-			sf::Vector2f{200, 600},
-			sf::Vector2f{600, 200},
-			sf::Vector2f{400, 400}
-		};
+
 	}
 
 	void update(const float dt, const sf::Vector2f &boundary, bool debug=false) {
@@ -74,13 +73,9 @@ struct EA {
 
 			goalDist = goals[drone->goalIndex % goals.size()] - drone->pos;
 			observation = {
-				drone->pos.x / 800,
-				drone->pos.y / 800,
 				drone->vel.x / 20.0f,
 				drone->vel.y / 20.0f,
 				(drone->angle) / HALF_PI,
-				(drone->thrusterLeft.angle) / HALF_PI,
-				(drone->thrusterRight.angle) / HALF_PI,
 				goalDist.x / 800,
 				goalDist.y / 800
 			};
@@ -94,22 +89,23 @@ struct EA {
 
 					// reward for quickly obtaining the goal
 					fitness[i] += (drone->goalIndex+1)*(600 - drone->aliveTimer);
-					drone->aliveTimer = 0;
+					drone->aliveTimer *= 0.5f;
 				}
 			}
 			else {
 				drone->goalTimer = 0;
 			}
-			/* fitness[i] += (drone->goalIndex+1)*(1.0f/((abs(goalDist.x)/800) + 1) + 1.0f/((abs(goalDist.y)/800) + 1)); */
 
-			fitness[i] += (drone->goalIndex+1)*(exp(-abs(goalDist.x)/800) + exp(-abs(goalDist.y)/800));
+			float expGx = exp(-abs(goalDist.x)/800);
+			float expGy = exp(-abs(goalDist.y)/800);
+
+			fitness[i] += (drone->goalIndex+1)*(expGx + expGy);
 
 			if (debug) {
 				if (i == 0) {
 					std::cout << "DEBUG:" << std::endl;
 					std::cout << "GD: " << goalDist.x/800 << "," << goalDist.y/800 << std::endl;
-					std::cout << "FGD: " << (1.0f/((abs(goalDist.x)/800) + 1) + 1.0f/((abs(goalDist.y)/800) + 1)) << std::endl;
-					std::cout << "FGDn: " << (drone->goalIndex+1)*(exp(-abs(goalDist.x)/800) + exp(-abs(goalDist.y)/800)) << std::endl;
+					std::cout << "FGD: " << (drone->goalIndex+1)*(expGx + expGy) << std::endl;
 				}
 			}
 
@@ -286,4 +282,26 @@ struct EA {
 	std::vector<float> fitness;
 
 	const size_t popSize;
+
+private: 
+	void scenario_default() {
+		this->goals = {
+			sf::Vector2f{200, 200}, 
+			sf::Vector2f{600, 600}, 
+			sf::Vector2f{200, 600},
+			sf::Vector2f{600, 200},
+			sf::Vector2f{400, 400}
+		};
+		this->walls = {};
+	}
+
+	void scenario_default_with_walls() {
+		this->goals = {
+			sf::Vector2f{200, 200}, 
+			sf::Vector2f{600, 600}, 
+			sf::Vector2f{200, 600},
+			sf::Vector2f{600, 200},
+			sf::Vector2f{400, 400}
+		};
+	}
 };

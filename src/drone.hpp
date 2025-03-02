@@ -1,10 +1,15 @@
 #pragma once
 
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
+#include <limits>
 #include <math.h>
+#include <vector>
+#include <memory>
 
 struct Thruster {
 	float angleController;
@@ -41,6 +46,51 @@ struct Thruster {
 };
 
 struct Drone {
+
+    struct Sensor {
+        const float angle; 
+        const float length; 
+
+        Sensor(float angle, float length) : angle(angle), length(length) { }
+
+        float check(const Drone* from, const std::vector<sf::CircleShape> &walls, const std::vector<std::unique_ptr<Drone>> &drones) const {
+            sf::Vector2f dir{cos(angle+from->angle), sin(angle+from->angle)};
+
+            // march
+            sf::Vector2f test = from->pos + dir*from->contactRadius;
+
+            float checked = 0;
+            while (checked < length) {
+                float closest = std::numeric_limits<float>::max();
+                float check;
+                for (auto && w : walls) {
+                    check = dist(w.getPosition() - test) - w.getRadius();
+                    /* std::cout << "check" << w.getPosition().x << "," << w.getPosition().y<< std::endl; */
+                    /* std::cout << "check" << w.getRadius() << std::endl; */
+                    /* std::cout << dist(w.getPosition() - test) << std::endl; */
+                    if (check < closest) {
+                        closest = check;
+                    }
+                }
+
+                // inside an object OR really close
+                if (closest < 1) {
+                    return checked/length;
+                }
+
+                checked += closest;
+                test += dir*closest;
+            }
+
+            return 1.0;
+        }
+
+    private: 
+        float dist(const sf::Vector2f &vec) const {
+            return sqrt((vec.x*vec.x)+(vec.y*vec.y));
+        }
+    };
+
 	sf::Vector2f pos;
     float angle;
 
@@ -48,8 +98,18 @@ struct Drone {
 	float angularVel;
 
 	Thruster thrusterLeft, thrusterRight;
+    std::vector<Sensor> sensors = {
+        Sensor{M_PI*0.00, 100},
+        Sensor{M_PI*0.25, 100},
+        Sensor{M_PI*0.50, 100},
+        Sensor{M_PI*0.75, 100},
+        Sensor{M_PI*1.00, 100},
+        Sensor{M_PI*1.25, 100},
+        Sensor{M_PI*1.50, 100},
+        Sensor{M_PI*1.75, 100},
+    };
 
-	sf::Vector2f aabbSize;
+	const float contactRadius = 60;
 	const sf::Vector2f startPos;
 	const sf::Vector2f thrusterOffset{50,0};
 
@@ -115,8 +175,8 @@ struct Drone {
 		thrusterLeft.update(dt);
 		thrusterRight.update(dt);
 
-		const sf::Vector2f gravity{0, 10};
-		vel += gravity * dt;
+		/* const sf::Vector2f gravity{0, 10}; */
+		/* vel += gravity * dt; */
 
 		vel += getThrust() * dt;
         pos += vel;
@@ -145,6 +205,7 @@ private:
                pos.y < 0 || pos.y > boundary.y ||
                angle < -M_PI * 0.5f || 
                angle > +M_PI * 0.5f ||
-               aliveTimer > 600;
+               aliveTimer > 600 ||
+               goalIndex > 15;
     }
 };

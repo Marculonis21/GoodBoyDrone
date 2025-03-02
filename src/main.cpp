@@ -47,18 +47,18 @@ int main(int argc, char* argv[]) {
     Drone drone{sf::Vector2f(400,400)};
     Renderer renderer;
 
-    Net mother;
-    mother.modules.push_back(std::make_unique<Linear>(9, 16));
-    mother.modules.push_back(std::make_unique<Tanh>(16));
-    /* mother.modules.push_back(std::make_unique<Linear>(16, 16)); */
-    /* mother.modules.push_back(std::make_unique<Tanh>(8)); */
-    mother.modules.push_back(std::make_unique<Linear>(16, 4));
-    mother.modules.push_back(std::make_unique<Tanh  >(4));
+    /* Net mother; */
+    /* mother.modules.push_back(std::make_unique<Linear>(5, 10)); */
+    /* mother.modules.push_back(std::make_unique<Tanh>(10)); */
+    /* /1* mother.modules.push_back(std::make_unique<Linear>(16, 16)); *1/ */
+    /* /1* mother.modules.push_back(std::make_unique<Tanh>(8)); *1/ */
+    /* mother.modules.push_back(std::make_unique<Linear>(10, 4)); */
+    /* mother.modules.push_back(std::make_unique<Tanh  >(4)); */
 
-    mother.initialize();
+    /* mother.initialize(); */
 
-    EA ea{100, mother, drone};
-    std::cout << "EA DONE" << std::endl;
+    /* EA ea{100, mother, drone}; */
+    /* std::cout << "EA DONE" << std::endl; */
     size_t generation = 0;
 
     constexpr float dt = 1.f / 60.f;
@@ -77,28 +77,26 @@ int main(int argc, char* argv[]) {
         window.clear();
 
         // EA LOGIC
-        ea.update(dt, boundary, generation % 500 == 0);
+        /* ea.update(dt, boundary, generation % 1000 == 0); */
 
-        goal.setPosition(ea.goals[ea.agents.at(0)->goalIndex]);
-        renderer.draw(ea.agents.at(0).get(), window, state);
-        window.draw(goal);
+        /* goal.setPosition(ea.goals[ea.agents.at(0)->goalIndex % ea.goals.size()]); */
+        /* renderer.draw(ea.agents.at(0).get(), window, state); */
+        /* window.draw(goal); */
 
         // SINGLE LOGIC
-        /* drone.update(dt, boundary); */
-        /* renderer.draw(&drone, window, state); */
+        drone.update(dt, boundary);
+        renderer.draw(&drone, window, state);
 
-        if (generation % 500 == 0) {
+        if (generation % 1000 == 0) {
             window.display();
         }
 
         // if at the end ea sim was finished, do the EA process, reset and the timing
-        if (ea.simFinished) {
-            std::cout << "EA PROCESS START" << std::endl;
-            ea.process();
-            std::cout << "EA DONE" << std::endl;
-            generation += 1;
-            std::cout << "Gen: " << generation << std::endl;
-        }
+        /* if (ea.simFinished) { */
+        /*     ea.process(); */
+        /*     generation += 1; */
+        /*     std::cout << "Gen: " << generation << std::endl; */
+        /* } */
     }
     
     return 0;
