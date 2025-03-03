@@ -17,6 +17,7 @@
 #include <random>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 using Individual = std::unique_ptr<Net>;
@@ -134,6 +135,7 @@ struct EA {
 	}
 
 	void process() {
+		std::cout << "Process 1" << std::endl;
 		auto elite = fitnessAgents();
 		std::vector<Weights> eliteW;
 		for (auto i : elite) {
@@ -141,7 +143,8 @@ struct EA {
 		}
 
 		/* std::cout << "EA PROCESS" << std::endl; */
-		auto selectedIds = tournamentSelection();
+		/* auto selectedIds = tournamentSelection(); */
+		auto selectedIds = sus(popSize);
 		/* std::cout << "Tournament done" << std::endl; */
 		auto offspringWeights = crossover(selectedIds);
 		/* std::cout << "Crossover done" << std::endl; */
@@ -157,6 +160,30 @@ struct EA {
 
 		resetAgents();
 		/* std::cout << "Agents reseted" << std::endl; */
+		simFinished = false;
+	}
+
+	void process_without_crossover() {
+		std::cout << "Process without crossover" << std::endl;
+		auto elite = fitnessAgents();
+
+		std::vector<Weights> eliteW;
+		for (auto i : elite) {
+			eliteW.push_back(populationW[i]);
+		}
+
+		const float factor = 0.1;
+		auto selectedIds = sus(popSize*factor);
+		auto offspringWeights = popUpscaling(selectedIds, std::ceil(1.0/factor));
+		mutation(offspringWeights);
+
+		populationW = offspringWeights;
+
+		for (int i = 0; i < eliteW.size(); ++i) {
+			populationW[i] = eliteW[i];
+		}
+
+		resetAgents();
 		simFinished = false;
 	}
 
@@ -182,7 +209,7 @@ struct EA {
 			fitness[i] += 1000 * agents[i]->goalIndex;
 		}
 
-		const int eliteSize = popSize*0.05;
+		const int eliteSize = popSize*0.025;
 		std::vector<float> sortedFitness(eliteSize); //largest n numbers
 		std::partial_sort_copy(
 			std::begin(fitness), std::end(fitness), 
@@ -242,6 +269,41 @@ struct EA {
 		return selectedIds;
 	}
 
+	std::vector<size_t> sus(const int N) {
+		std::vector<size_t> selectedIds;
+
+		// A hope to have the most fit one as the first one (for rendering and stuff...)
+		std::vector<float> selectedFs;  
+
+		float fSum = 0;
+		for (auto f : fitness) {
+			fSum += f;
+		}
+
+		const float fDist = fSum/N;
+
+		std::uniform_real_distribution<float> distr(0, fDist);
+		const float startPoint = distr(gen);
+
+		for (int n = 0; n < N; ++n) {
+
+			float selectionPoint = startPoint + n*fDist;
+
+			float testSum = 0;
+			for (int i = 0; i < popSize; ++i) {
+				testSum += fitness[i];
+
+				if (selectionPoint <= testSum) {
+					selectedIds.push_back(i);
+					selectedFs.push_back(fitness[i]);
+					break;
+				}
+			}
+		}
+
+		return selectedIds;
+	}
+
 	std::vector<Weights> crossover(const std::vector<size_t> &selectedIds) {
 		std::uniform_real_distribution<float> distr(0.0f, 1.0f);
 
@@ -271,6 +333,36 @@ struct EA {
 			newPopW.push_back(o2);
 		}
 
+		return newPopW;
+	}
+
+	std::vector<Weights> popUpscaling(const std::vector<size_t> &selectedIds, const size_t upscaleFactor) {
+		std::vector<Weights> newPopW;
+		newPopW.reserve(popSize);
+
+		for (auto id : selectedIds) {
+			newPopW.push_back(populationW[id]);
+		}
+
+		std::uniform_real_distribution<float> weightDistr(-0.1f, 0.1f);
+
+		// for each of the selected ones
+		for (int i = 0; i < selectedIds.size(); ++i) {
+			// upscale them by factor - 1 (1 original + rest new)
+			for (int _ = 0; _ < upscaleFactor-1; ++_) {
+				Weights o1;
+				o1.reserve(newPopW[i].size());
+				// go through all of their weights and update them by a little
+				for (int w = 0; w < newPopW[i].size(); ++w) {
+					// WARN: let's say that we don't care about weights > 1 or < -1, we'll see how that goes
+					o1.push_back(newPopW[i][w] + weightDistr(gen));
+				}
+
+				newPopW.push_back(o1);
+			}
+		}
+
+		assert(newPopW.size() == popSize && "Pop after upscaling does not match the expected pop size");
 		return newPopW;
 	}
 

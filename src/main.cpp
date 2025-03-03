@@ -56,7 +56,6 @@ int main(int argc, char* argv[]) {
     std::vector<Wall> walls {
     };
 
-
     size_t generation = 0;
 
     bool drawDebug = false;
@@ -116,17 +115,18 @@ int main(int argc, char* argv[]) {
 
         // if at the end ea sim was finished, do the EA process, reset and the timing
         if (ea.simFinished) {
-            ea.process();
+            /* ea.process(); */
+            ea.process_without_crossover();
             generation += 1;
             std::cout << "Gen: " << generation << " Best Fitness: " << ea.lastMaxFitness << std::endl;
-            if (walls.size() == 0) {
-                if (ea.lastMaxFitness > 30000) {
-                    walls = {
-                        Wall{sf::Vector2f{400, 400}, 100},
-                        Wall{sf::Vector2f{300, 400}, 50},
-                    };
-                }
-            }
+            /* if (walls.size() == 0) { */
+            /*     if (ea.lastMaxFitness > 30000) { */
+            /*         walls = { */
+            /*             Wall{sf::Vector2f{400, 400}, 100}, */
+            /*             Wall{sf::Vector2f{300, 400}, 50}, */
+            /*         }; */
+            /*     } */
+            /* } */
         }
     }
     
