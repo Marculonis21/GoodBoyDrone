@@ -17,6 +17,7 @@
 
 #include "utils.hpp"
 
+
 int main(int argc, char* argv[]) {
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 4;
@@ -46,6 +47,9 @@ int main(int argc, char* argv[]) {
     mother.modules.push_back(std::make_unique<Linear>(16, 4));
     mother.modules.push_back(std::make_unique<Tanh>(4));
     mother.initialize();
+    mother.saveConfig("save_test.json");
+    Net::loadConfig("save_test.json");
+    return 0; 
 
     EA ea{250, mother, drone};
 

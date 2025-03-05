@@ -21,10 +21,10 @@ file(GLOB HEADER_FILES
 find_package(SFML 2.5
   COMPONENTS 
     system window graphics network audio REQUIRED
-  )
+)
 
 # Compile executable
 add_executable(${PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES})
 
 # Link executable to required SFML libraries
-target_link_libraries(${PROJECT_NAME} sfml-graphics)
+target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics)
