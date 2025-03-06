@@ -215,6 +215,6 @@ private:
                angle < -M_PI * 0.5f || 
                angle > +M_PI * 0.5f ||
                aliveTimer > 600 ||
-               goalIndex > 15;
+               goalIndex >= 10;
     }
 };

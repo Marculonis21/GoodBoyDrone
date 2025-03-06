@@ -48,17 +48,14 @@ int main(int argc, char* argv[]) {
     mother.modules.push_back(std::make_unique<Tanh>(4));
     mother.initialize();
 
-    int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
-
     EA ea{250, mother, drone};
-    ea.saveEA("ea_test"+std::to_string(timestamp)+".json");
-    return 0; 
 
     std::vector<Wall> walls {
     };
 
     size_t generation = 0;
     bool drawDebug = false;
+    bool saveState = false;
 
     sf::Event event;
     while (window.isOpen()) 
@@ -76,6 +73,10 @@ int main(int argc, char* argv[]) {
             }
             if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::F2)) {
                 drawDebug = true;
+            }
+            if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Enter)) {
+                saveState= true;
+                std::cout << "SAVE STATE to TRUE" << std::endl;
             }
         }
 
@@ -126,6 +127,20 @@ int main(int argc, char* argv[]) {
             /*         }; */
             /*     } */
             /* } */
+
+            if (saveState) {
+                std::cout << "SAVING..." << std::endl;
+
+                int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+                ea.saveEA("ea_save_" + std::to_string(generation) + "_" + std::to_string(timestamp) + ".json");   
+                mother.saveConfig("net_save_" + std::to_string(generation) + "_" + std::to_string(timestamp) + ".json");   
+
+                std::cout << "ALL SAVED" << std::endl;
+
+                saveState = false;
+                std::cout << "SAVE STATE to FALSE" << std::endl;
+            }
+
         }
     }
     
