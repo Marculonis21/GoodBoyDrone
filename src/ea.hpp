@@ -17,7 +17,6 @@
 #include <random>
 #include <string>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 using Individual = std::unique_ptr<Net>;
@@ -31,9 +30,8 @@ struct EA {
 
 	float lastMaxFitness = 0;
 
-	EA(size_t popSize, const Net &mother, const Drone &father)
-		: popSize(popSize) {
-		assert(popSize % 2 == 0 && "PopSize should be divisible by 2!");
+	EA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize), motherDescription(mother.describe())  {
+		assert(popSize % 2 == 0 && "PopSize should be divisible by 2! (Please)");
 
 		population.reserve(popSize);
 		populationW.reserve(popSize);
@@ -115,7 +113,6 @@ struct EA {
 					std::cout << "DEBUG:" << std::endl;
 					std::cout << "GD: " << goalDist.x/800 << "," << goalDist.y/800 << std::endl;
 					std::cout << "FGD: " << (drone->goalIndex+1)*(expGx + expGy) << std::endl;
-
 					std::cout << "Sensors: ["; 
 					for (int i = 0; i < 8; ++i) {
 						std::cout << observation[5+i] << ", ";
@@ -135,36 +132,30 @@ struct EA {
 	}
 
 	void process() {
-		std::cout << "Process 1" << std::endl;
+		std::cout << "EA Process Default" << std::endl;
 		auto elite = fitnessAgents();
 		std::vector<Weights> eliteW;
 		for (auto i : elite) {
 			eliteW.push_back(populationW[i]);
 		}
 
-		/* std::cout << "EA PROCESS" << std::endl; */
 		/* auto selectedIds = tournamentSelection(); */
 		auto selectedIds = sus(popSize);
-		/* std::cout << "Tournament done" << std::endl; */
 		auto offspringWeights = crossover(selectedIds);
-		/* std::cout << "Crossover done" << std::endl; */
 		mutation(offspringWeights);
-		/* std::cout << "Mutation done" << std::endl; */
 
 		populationW = offspringWeights;
 
 		for (int i = 0; i < eliteW.size(); ++i) {
 			populationW[i] = eliteW[i];
 		}
-		/* std::cout << "Elite size: " << eliteW.size() << std::endl; */
 
 		resetAgents();
-		/* std::cout << "Agents reseted" << std::endl; */
 		simFinished = false;
 	}
 
 	void process_without_crossover() {
-		std::cout << "Process without crossover" << std::endl;
+		std::cout << "EA Process Without crossover" << std::endl;
 		auto elite = fitnessAgents();
 
 		std::vector<Weights> eliteW;
@@ -187,7 +178,44 @@ struct EA {
 		simFinished = false;
 	}
 
-  private:
+	void saveEA(const std::string &path) const {
+		json popW;
+
+		for (int i = 0; i < popSize; ++i) {
+			popW[std::to_string(i)] = populationW[i];
+		}
+
+        json config = {
+            {"popSize", popSize},
+            {"motherNet", motherDescription},
+			{"popW", popW}
+        };
+
+        std::ofstream file(path);
+        file << config.dump(4);
+        file.close();
+
+		std::cout << "EA saved to a file " << path << std::endl;
+	}
+
+	void loadPopEA(const std::string &path) {
+        std::ifstream input(path);
+        json config;
+        input >> config;
+        input.close();
+
+        size_t size = config["popSize"];
+		assert(size == this->popSize && "Problem - Load size != EA pop size!");
+
+		for (int i = 0; i < size; ++i) {
+			populationW[i] = Weights(config["popW"][std::to_string(i)]);
+		}
+
+		resetAgents();
+		std::cout << "EA popw finished loading from a file " << path << std::endl;
+	}
+
+private:
 	void initPop(const Net &mother) {
 		for (int i = 0; i < popSize; ++i) {
 			population.push_back(std::make_unique<Net>());
@@ -386,4 +414,6 @@ struct EA {
 	std::vector<float> fitness;
 
 	const size_t popSize;
+	/* const Net mother; */
+	const json motherDescription;
 };

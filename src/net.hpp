@@ -10,7 +10,6 @@
 #include <random>
 #include <string>
 #include <vector>
-#include <iostream>
 
 #include "utils.hpp"
 #include "json.hpp"
@@ -143,7 +142,7 @@ struct Tanh : public Module {
 struct Net {
     std::vector<std::unique_ptr<Module>> modules;
 
-    Net() {}
+    Net() = default;
 
     void initialize() {
         for (auto && mod : modules) {

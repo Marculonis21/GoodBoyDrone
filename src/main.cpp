@@ -13,10 +13,11 @@
 #include <SFML/Window/Mouse.hpp>
 #include <SFML/Graphics.hpp>
 #include <cassert>
+#include <chrono>
 #include <cmath>
+#include <string>
 
 #include "utils.hpp"
-
 
 int main(int argc, char* argv[]) {
 	sf::ContextSettings settings;
@@ -39,7 +40,6 @@ int main(int argc, char* argv[]) {
     Renderer renderer;
 
     Net mother;
-    /* mother.modules.push_back(std::make_unique<Linear>(13, 16)); */
     mother.modules.push_back(std::make_unique<Linear>(13, 16));
     mother.modules.push_back(std::make_unique<Tanh>(16));
     /* mother.modules.push_back(std::make_unique<Linear>(16, 16)); */
@@ -47,21 +47,17 @@ int main(int argc, char* argv[]) {
     mother.modules.push_back(std::make_unique<Linear>(16, 4));
     mother.modules.push_back(std::make_unique<Tanh>(4));
     mother.initialize();
-    mother.saveConfig("save_test.json");
-    Net::loadConfig("save_test.json");
-    return 0; 
+
+    int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
 
     EA ea{250, mother, drone};
+    ea.saveEA("ea_test"+std::to_string(timestamp)+".json");
+    return 0; 
 
-    /* std::vector<Wall> walls { */
-    /*     Wall{sf::Vector2f{400, 400}, 100}, */
-    /*     Wall{sf::Vector2f{300, 400}, 50}, */
-    /* }; */
     std::vector<Wall> walls {
     };
 
     size_t generation = 0;
-
     bool drawDebug = false;
 
     sf::Event event;
@@ -119,7 +115,6 @@ int main(int argc, char* argv[]) {
 
         // if at the end ea sim was finished, do the EA process, reset and the timing
         if (ea.simFinished) {
-            /* ea.process(); */
             ea.process_without_crossover();
             generation += 1;
             std::cout << "Gen: " << generation << " Best Fitness: " << ea.lastMaxFitness << std::endl;
