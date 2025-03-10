@@ -132,8 +132,8 @@ int main(int argc, char* argv[]) {
                 std::cout << "SAVING..." << std::endl;
 
                 int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
-                ea.saveEA("ea_save_" + std::to_string(generation) + "_" + std::to_string(timestamp) + ".json");   
-                mother.saveConfig("net_save_" + std::to_string(generation) + "_" + std::to_string(timestamp) + ".json");   
+                ea.saveEA("saves/ea_save_" + std::to_string(generation) + "_" + std::to_string(timestamp) + ".json");   
+                mother.saveConfig("saves/net_save_" + std::to_string(generation) + "_" + std::to_string(timestamp) + ".json");   
 
                 std::cout << "ALL SAVED" << std::endl;
 

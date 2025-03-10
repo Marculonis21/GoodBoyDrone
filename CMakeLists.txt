@@ -28,3 +28,5 @@ add_executable(${PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES})
 
 # Link executable to required SFML libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics)
+
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/saves)
