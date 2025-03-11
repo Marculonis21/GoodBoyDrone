@@ -50,12 +50,30 @@ int main(int argc, char* argv[]) {
 
     EA ea{250, mother, drone};
 
-    std::vector<Wall> walls {
+    World world {
+        .boundary = sf::Vector2f{winWidth,winHeight},
+        .walls = {},
+        .goals = {
+			sf::Vector2f{200, 200}, 
+			sf::Vector2f{600, 600}, 
+			sf::Vector2f{200, 600},
+			sf::Vector2f{600, 200},
+			sf::Vector2f{400, 650}
+		}
     };
 
-    size_t generation = 0;
+    const World world_lvl2 {
+        world.boundary,
+        std::vector<Wall>{ 
+            Wall{sf::Vector2f{400, 400}, 100},
+            Wall{sf::Vector2f{300, 400}, 50},
+        },
+        world.goals
+    };
+
     bool drawDebug = false;
     bool saveState = false;
+    bool eaUpdateDone = false; 
 
     sf::Event event;
     while (window.isOpen()) 
@@ -82,7 +100,7 @@ int main(int argc, char* argv[]) {
 
         window.clear();
 
-        for (auto && w : walls) {
+        for (auto && w : world.walls) {
             wallPrefab.setPosition(w.pos);
             wallPrefab.setRadius(w.radius);
             wallPrefab.setOrigin(w.radius,w.radius);
@@ -94,13 +112,13 @@ int main(int argc, char* argv[]) {
         /* drone.pos = sf::Vector2f{mp}; */
 
         // EA LOGIC
-        ea.update(dt, boundary, walls, generation % 500 == 0);
+        eaUpdateDone = ea.update(dt, world, ea.generation % 500 == 0);
 
-        if (generation % 500 == 0) {
-            goal.setPosition(ea.goals[ea.agents.at(0)->goalIndex % ea.goals.size()]);
+        if (ea.generation % 500 == 0) {
+            goal.setPosition(world.goals[ea.agents.at(0)->goalIndex % world.goals.size()]);
             renderer.draw_body(ea.agents.at(0).get(), window, state);
             if (drawDebug) {
-                renderer.draw_debug(ea.agents.at(0).get(), walls, {}, window, state);
+                renderer.draw_debug(ea.agents.at(0).get(), world.walls, {}, window, state);
             }
 
             window.draw(goal);
@@ -115,16 +133,16 @@ int main(int argc, char* argv[]) {
         /* } */
 
         // if at the end ea sim was finished, do the EA process, reset and the timing
-        if (ea.simFinished) {
+        if (eaUpdateDone) {
+            eaUpdateDone = false;
+
             ea.process_without_crossover();
-            generation += 1;
-            std::cout << "Gen: " << generation << " Best Fitness: " << ea.lastMaxFitness << std::endl;
-            /* if (walls.size() == 0) { */
+
+            std::cout << "Gen: " << ea.generation << " Best Fitness: " << ea.lastMaxFitness << std::endl;
+            /* if (world.walls.size() == 0) { */
             /*     if (ea.lastMaxFitness > 30000) { */
-            /*         walls = { */
-            /*             Wall{sf::Vector2f{400, 400}, 100}, */
-            /*             Wall{sf::Vector2f{300, 400}, 50}, */
-            /*         }; */
+            /*         // change world lvl to a harder one */
+            /*         world = world_lvl2; */
             /*     } */
             /* } */
 
@@ -132,8 +150,8 @@ int main(int argc, char* argv[]) {
                 std::cout << "SAVING..." << std::endl;
 
                 int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
-                ea.saveEA("saves/ea_save_" + std::to_string(generation) + "_" + std::to_string(timestamp) + ".json");   
-                mother.saveConfig("saves/net_save_" + std::to_string(generation) + "_" + std::to_string(timestamp) + ".json");   
+                ea.saveEA("saves/ea_save_" + std::to_string(ea.generation) + "_" + std::to_string(timestamp) + ".json");   
+                mother.saveConfig("saves/net_save_" + std::to_string(ea.generation) + "_" + std::to_string(timestamp) + ".json");   
 
                 std::cout << "ALL SAVED" << std::endl;
 

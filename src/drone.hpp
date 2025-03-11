@@ -3,6 +3,7 @@
 #include "utils.hpp"
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -170,7 +171,7 @@ struct Drone {
         return (lTorque + rTorque)*momentOfInertia;
     }
 
-    void update(const float dt, const sf::Vector2f &boundary, const std::vector<Wall> &walls) {
+    void update(const float dt, const World &world) {
         if (!alive) return;
         aliveTimer += 1;
 
@@ -186,9 +187,9 @@ struct Drone {
         angularVel += getTorque() * dt;
         angle += angularVel;
 
-        alive = !wait_he_should_be_already_dead(boundary);
+        alive = !wait_he_should_be_already_dead(world.boundary);
 
-        for (auto && w : walls) {
+        for (auto && w : world.walls) {
             auto v = w.pos - this->pos;
             float dist = (v.x*v.x)+(v.y*v.y);
             float minDist = w.radius + this->contactRadius;
@@ -198,6 +199,35 @@ struct Drone {
             }
         }
 	}
+
+    void genObservation_with_sensors(std::vector<float> &observation, const World &world) {
+        assert(observation.size() == 13 && "genObservation_with_sensors wants to generate 13 obs");
+
+        sf::Vector2f goalDist = world.goals[goalIndex % world.goals.size()] - pos;
+
+        // creating observations 
+        observation[0] = vel.x / 20.0f;
+        observation[1] = vel.y / 20.0f;
+        observation[2] = angle / HALF_PI;
+        observation[3] = goalDist.x / world.boundary.x;
+        observation[4] = goalDist.y / world.boundary.y;
+        for (int s = 0; s < sensors.size(); ++s) {
+            observation[5+s] = 1 - sensors[s].check(this, world.walls, {});
+        }
+    }
+
+    void genObservation_no_sensors(std::vector<float> &observation, const World &world) {
+        assert(observation.size() == 5 && "genObservation_no_sensors wants to generate 5 obs");
+
+        sf::Vector2f goalDist = world.goals[goalIndex % world.goals.size()] - pos;
+
+        // creating observations 
+        observation[0] = vel.x / 20.0f;
+        observation[1] = vel.y / 20.0f;
+        observation[2] = angle / HALF_PI;
+        observation[3] = goalDist.x / world.boundary.x;
+        observation[4] = goalDist.y / world.boundary.y;
+    }
 
     void control(float lac, float lpc, float rac, float rpc) {
         lpc = (lpc+1) * 0.5;

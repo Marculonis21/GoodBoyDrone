@@ -23,12 +23,10 @@ using Individual = std::unique_ptr<Net>;
 using Agent = std::unique_ptr<Drone>;
 
 struct EA {
-	std::vector<sf::Vector2f> goals;
-	std::vector<sf::CircleShape> walls;
 	std::vector<Agent> agents;
-	bool simFinished = false;
 
 	float lastMaxFitness = 0;
+	uint64_t generation = 0;
 
 	EA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize), motherDescription(mother.describe())  {
 		assert(popSize % 2 == 0 && "PopSize should be divisible by 2! (Please)");
@@ -40,20 +38,9 @@ struct EA {
 
 		initPop(mother);
 		initAgents(father);
-		simFinished = false;
-
-		this->goals = {
-			sf::Vector2f{200, 200}, 
-			sf::Vector2f{600, 600}, 
-			sf::Vector2f{200, 600},
-			sf::Vector2f{600, 200},
-			sf::Vector2f{400, 650}
-		};
 	}
 
-	void update(const float dt, const sf::Vector2f &boundary, const std::vector<Wall> &walls, bool debug=false) {
-		sf::Vector2f goalDist;
-
+	bool update(const float dt, const World &world, bool debug=false) {
 		// WARN: observation size is important for memory!
 		std::vector<float> observation;
 		observation.resize(13);
@@ -69,24 +56,15 @@ struct EA {
 			drone = agents[i].get();
 			net = population[i].get();
 
-			drone->update(dt, boundary, walls);
+			drone->update(dt, world);
 
 			if (!drone->alive) continue;
 			someAlive = true;
 
-			goalDist = goals[drone->goalIndex % goals.size()] - drone->pos;
+			drone->genObservation_with_sensors(observation, world);
 
-			// creating observations 
-			// WARN: take care of the observation size
-			observation[0] = drone->vel.x / 20.0f;
-			observation[1] = drone->vel.y / 20.0f;
-			observation[2] = (drone->angle) / HALF_PI;
-			observation[3] = goalDist.x / 800;
-			observation[4] = goalDist.y / 800;
-			for (int s = 0; s < drone->sensors.size(); ++s) {
-				observation[5+s] = 1 - drone->sensors[s].check(drone, walls, {});
-			}
-
+			// hard-coded goal collection
+			sf::Vector2f goalDist = world.goals[drone->goalIndex % world.goals.size()] - drone->pos;
 			if (goalDist.x*goalDist.x + goalDist.y*goalDist.y < 100) {
 				drone->goalTimer += 1;
 				// half a second for 60 fps game physics - GOAL COLLECTED
@@ -103,15 +81,16 @@ struct EA {
 				drone->goalTimer = 0;
 			}
 
-			float expGx = exp(-abs(goalDist.x)/800);
-			float expGy = exp(-abs(goalDist.y)/800);
+			// fitness calculation
+			float expGx = exp(-abs(goalDist.x)/world.boundary.x);
+			float expGy = exp(-abs(goalDist.y)/world.boundary.y);
 
 			fitness[i] += (drone->goalIndex+1)*(expGx + expGy);
 
 			if (debug) {
 				if (i == 0) {
 					std::cout << "DEBUG:" << std::endl;
-					std::cout << "GD: " << goalDist.x/800 << "," << goalDist.y/800 << std::endl;
+					std::cout << "GD: " << goalDist.x/world.boundary.x << "," << goalDist.y/world.boundary.y << std::endl;
 					std::cout << "FGD: " << (drone->goalIndex+1)*(expGx + expGy) << std::endl;
 					std::cout << "Sensors: ["; 
 					for (int i = 0; i < 8; ++i) {
@@ -126,9 +105,8 @@ struct EA {
 			drone->control(output[0], output[1], output[2], output[3]);
 		}
 
-		if (!someAlive) {
-			simFinished = true;
-		}
+		// ask for process
+		return !someAlive;
 	}
 
 	void process() {
@@ -150,8 +128,8 @@ struct EA {
 			populationW[i] = eliteW[i];
 		}
 
+		generation += 1;
 		resetAgents();
-		simFinished = false;
 	}
 
 	void process_without_crossover() {
@@ -174,8 +152,8 @@ struct EA {
 			populationW[i] = eliteW[i];
 		}
 
+		generation += 1;
 		resetAgents();
-		simFinished = false;
 	}
 
 	void saveEA(const std::string &path) const {
