@@ -119,7 +119,9 @@ struct Drone {
     size_t goalIndex = 0;
     size_t goalTimer = 0;
 
-	Drone(sf::Vector2f startPos) : startPos(startPos) { reset(); }
+    const bool human = false;
+
+	Drone(sf::Vector2f startPos, bool human=false) : startPos(startPos), human(human) { reset(); }
 
 	void reset() {
 		pos = startPos;
@@ -185,6 +187,7 @@ struct Drone {
         angle += angularVel;
 
         alive = !wait_he_should_be_already_dead(boundary);
+
         for (auto && w : walls) {
             auto v = w.pos - this->pos;
             float dist = (v.x*v.x)+(v.y*v.y);
@@ -214,7 +217,7 @@ private:
                pos.y < 0 || pos.y > boundary.y ||
                angle < -M_PI * 0.5f || 
                angle > +M_PI * 0.5f ||
-               aliveTimer > 600 ||
-               goalIndex >= 10;
+               (aliveTimer > 600 && !human) ||
+               (goalIndex >= 10 && !human);
     }
 };
