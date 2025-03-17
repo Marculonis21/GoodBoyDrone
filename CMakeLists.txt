@@ -18,15 +18,23 @@ file(GLOB HEADER_FILES
     ${CMAKE_SOURCE_DIR}/src/*.hpp)
 
 # Find SFML shared libraries
-find_package(SFML 2.5
-  COMPONENTS 
-    system window graphics network audio REQUIRED
-)
+include(FetchContent)
+FetchContent_Declare(SFML
+    GIT_REPOSITORY https://github.com/SFML/SFML.git
+    GIT_TAG 3.0.0
+    GIT_SHALLOW ON
+    EXCLUDE_FROM_ALL
+    SYSTEM)
+FetchContent_MakeAvailable(SFML)
 
 # Compile executable
 add_executable(${PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES})
 
 # Link executable to required SFML libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics)
+target_link_libraries(${PROJECT_NAME} PRIVATE sfml-audio
+        sfml-graphics
+        sfml-system
+        sfml-window
+        )
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/saves)
