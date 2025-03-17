@@ -9,7 +9,11 @@
 #include "runner.hpp"
 #include "utils.hpp"
 
+#include "BS_thread_pool.hpp"
+
 int main(int argc, char* argv[]) {
+
+    BS::thread_pool pool{10};
 
     std::unique_ptr<AbstractRunner> runner;
 

@@ -17,6 +17,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "BS_thread_pool.hpp"
+
 using Individual = std::unique_ptr<Net>;
 using Agent = std::unique_ptr<Drone>;
 
@@ -28,6 +30,8 @@ struct EA {
 
 	uint64_t generation = 0;
 
+	std::unique_ptr<BS::thread_pool<>> thread_pool;
+
 	EA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize), motherDescription(mother.describe())  {
 		assert(popSize % 2 == 0 && "PopSize should be divisible by 2! (Please)");
 
@@ -38,6 +42,8 @@ struct EA {
 
 		initPop(mother);
 		initAgents(father);
+
+		thread_pool = std::make_unique<BS::thread_pool<>>(4);
 	}
 
 	bool update(const float dt, const World &world, bool debug=false) {
