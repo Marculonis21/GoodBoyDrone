@@ -13,6 +13,8 @@ constexpr double RAD_TO_DEG = 57.295779513082320876798154814105;
 const uint32_t winHeight = 800;
 const uint32_t winWidth = 800;
 
+constexpr float dt = 1.f / 60.f;
+
 struct Wall{
 	sf::Vector2f pos;
 	float radius;
