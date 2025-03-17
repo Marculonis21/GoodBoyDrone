@@ -17,15 +17,20 @@ file(GLOB SOURCE_FILES
 file(GLOB HEADER_FILES
     ${CMAKE_SOURCE_DIR}/src/*.hpp)
 
-# Find SFML shared libraries
 include(FetchContent)
-FetchContent_Declare(SFML
-    GIT_REPOSITORY https://github.com/SFML/SFML.git
-    GIT_TAG 3.0.0
-    GIT_SHALLOW ON
-    EXCLUDE_FROM_ALL
-    SYSTEM)
-FetchContent_MakeAvailable(SFML)
+
+set(SFML_VERSION "2.5.1")
+FetchContent_Declare(
+    sfml
+    GIT_REPOSITORY "https://github.com/SFML/SFML.git"
+    GIT_TAG        "${SFML_VERSION}"
+)
+
+FetchContent_GetProperties(sfml)
+if(NOT sfml_POPULATED)
+    FetchContent_Populate(sfml)
+    add_subdirectory(${sfml_SOURCE_DIR} ${sfml_BINARY_DIR})
+endif()
 
 # Compile executable
 add_executable(${PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES})
