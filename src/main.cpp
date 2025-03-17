@@ -29,8 +29,11 @@ int main(int argc, char* argv[]) {
     if (std::string(argv[1]) == "window") {
         runner = std::make_unique<EAWindowRunner>();
     }
-    else {
+    else if (std::string(argv[1]) == "console") {
         runner = std::make_unique<ConsoleRunner>();
+    }
+    else {
+        return 1;
     }
 
     World world {
@@ -65,8 +68,8 @@ int main(int argc, char* argv[]) {
 
     EA ea{250, mother, drone};
     
-    runner->prepare();
-    runner->run(drone, mother, ea, world);
+    runner->prepare(std::vector<World>{world, world_lvl2});
+    runner->run(drone, mother, ea);
 
     return 0;
 }

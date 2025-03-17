@@ -60,7 +60,7 @@ struct ConsoleRunner : public AbstractRunner {
 
 				ea.process_without_crossover();
 
-				printf("Gen: %lu  Best Fitness: %.3f  Average Fitness: %.3f", ea.generation, ea.lastMaxFitness, ea.lastAverageFitness);
+				printf("Gen: %lu  Best Fitness: %.3f  Average Fitness: %.3f\n", ea.generation, ea.lastMaxFitness, ea.lastAverageFitness);
 				// level up condition
 			
 				levelUpProcedure(ea);
@@ -167,7 +167,7 @@ struct EAWindowRunner : public AbstractRunner {
 
 				ea.process_without_crossover();
 
-				printf("Gen: %lu  Best Fitness: %.3f  Average Fitness: %.3f", ea.generation, ea.lastMaxFitness, ea.lastAverageFitness);
+				printf("Gen: %lu  Best Fitness: %.3f  Average Fitness: %.3f\n", ea.generation, ea.lastMaxFitness, ea.lastAverageFitness);
 				levelUpProcedure(ea);
 
 				if (saveFlag) {
