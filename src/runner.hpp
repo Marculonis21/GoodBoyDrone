@@ -17,55 +17,57 @@ struct AbstractRunner {
 	int currentLevel = 0;
 	std::vector<World> worldLevels;
 
+	bool debugFlag = false;
+	bool saveFlag = false;
+	bool updateDoneFlag = false; 
+
 	virtual void prepare(std::vector<World> levels) = 0;
 	virtual void run(Drone &drone, Net &mother, EA &ea) = 0;
+
+	void saveProcedure(EA &ea, Net &mother) {
+		std::cout << "SAVING..." << std::endl;
+
+		int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+		ea.saveEA("saves/ea_save_" + std::to_string(ea.generation) + "_" + std::to_string(timestamp) + ".json");   
+		mother.saveConfig("saves/net_save_" + std::to_string(ea.generation) + "_" + std::to_string(timestamp) + ".json");   
+
+		std::cout << "ALL SAVED" << std::endl;
+	}
+
+	void levelUpProcedure(EA &ea) {
+		if (ea.lastMaxFitness > 90000 && currentLevel < worldLevels.size()) {
+			currentLevel += 1;
+		}
+	}
 };
 
 struct ConsoleRunner : public AbstractRunner {
-	int verbosity = 0;
-
 	void prepare(std::vector<World> levels) override {
-		this->currentLevel = 0;
-		this->worldLevels = levels;
+		currentLevel = 0;
+		worldLevels = levels;
 	}
 
 	void run(Drone &drone, Net &mother, EA &ea) override {
 
-		bool drawDebug = false;
-		bool saveState = false;
-		bool eaUpdateDone = false; 
-
 		while (true) 
 		{
 			// EA LOGIC
-			eaUpdateDone = ea.update(dt, worldLevels[currentLevel], ea.generation % 500 == 0);
+			updateDoneFlag = ea.update(dt, worldLevels[currentLevel], ea.generation % 500 == 0);
 
 			// if at the end ea sim was finished, do the EA process, reset and the timing
-			if (eaUpdateDone) {
-				eaUpdateDone = false;
+			if (updateDoneFlag) {
+				updateDoneFlag = false;
 
 				ea.process_without_crossover();
 
 				printf("Gen: %lu  Best Fitness: %.3f  Average Fitness: %.3f", ea.generation, ea.lastMaxFitness, ea.lastAverageFitness);
 				// level up condition
-				if (ea.lastMaxFitness > 90000 && worldLevels.size() < currentLevel) {
-					// change world lvl to a harder one
-					//
+			
+				levelUpProcedure(ea);
+
+				if (ea.generation % 1000 == 0) {
+				    saveProcedure(ea, mother);
 				}
-
-				if (saveState) {
-					std::cout << "SAVING..." << std::endl;
-
-					int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
-					ea.saveEA("saves/ea_save_" + std::to_string(ea.generation) + "_" + std::to_string(timestamp) + ".json");   
-					mother.saveConfig("saves/net_save_" + std::to_string(ea.generation) + "_" + std::to_string(timestamp) + ".json");   
-
-					std::cout << "ALL SAVED" << std::endl;
-
-					saveState = false;
-					std::cout << "SAVE STATE to FALSE" << std::endl;
-				}
-
 			}
 		}
 	}
@@ -81,8 +83,8 @@ struct EAWindowRunner : public AbstractRunner {
 	std::unique_ptr<Renderer> renderer;
 
 	void prepare(std::vector<World> levels) override {
-		this->currentLevel = 0;
-		this->levels = levels;
+		currentLevel = 0;
+		levels = levels;
 
 		// window prep
 		sf::ContextSettings settings;
@@ -102,11 +104,7 @@ struct EAWindowRunner : public AbstractRunner {
 		renderer = std::make_unique<Renderer>();
 	}
 
-	void run(Drone &drone, Net &mother, EA &ea, World &world) override {
-		bool drawDebug = false;
-		bool saveState = false;
-		bool eaUpdateDone = false; 
-
+	void run(Drone &drone, Net &mother, EA &ea) override {
 		sf::Event event;
 		while (window->isOpen()) 
 		{
@@ -117,22 +115,21 @@ struct EAWindowRunner : public AbstractRunner {
 					window->close();
 					break;
 				}
-
 				if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::F1)) {
-					drawDebug = false;
+					debugFlag = false;
 				}
 				if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::F2)) {
-					drawDebug = true;
+					debugFlag = true;
 				}
 				if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Enter)) {
-					saveState= true;
+					saveFlag = true;
 					std::cout << "SAVE STATE to TRUE" << std::endl;
 				}
 			}
 
 			window->clear();
 
-			for (auto && w : world.walls) {
+			for (auto && w : worldLevels[currentLevel].walls) {
 				wallPrefab->setPosition(w.pos);
 				wallPrefab->setRadius(w.radius);
 				wallPrefab->setOrigin(w.radius,w.radius);
@@ -144,13 +141,13 @@ struct EAWindowRunner : public AbstractRunner {
 			/* drone.pos = sf::Vector2f{mp}; */
 
 			// EA LOGIC
-			eaUpdateDone = ea.update(dt, world, ea.generation % 500 == 0);
+			updateDoneFlag = ea.update(dt, worldLevels[currentLevel], ea.generation % 500 == 0);
 
 			if (ea.generation % 500 == 0) {
-				goalPrefab->setPosition(world.goals[ea.agents.at(0)->goalIndex % world.goals.size()]);
+				goalPrefab->setPosition(worldLevels[currentLevel].goals[ea.agents.at(0)->goalIndex % worldLevels[currentLevel].goals.size()]);
 				renderer->draw_body(ea.agents.at(0).get(), *window, *state);
-				if (drawDebug) {
-					renderer->draw_debug(ea.agents.at(0).get(), world.walls, {}, *window, *state);
+				if (debugFlag) {
+					renderer->draw_debug(ea.agents.at(0).get(), worldLevels[currentLevel].walls, {}, *window, *state);
 				}
 
 				window->draw(*goalPrefab);
@@ -165,34 +162,20 @@ struct EAWindowRunner : public AbstractRunner {
 			/* } */
 
 			// if at the end ea sim was finished, do the EA process, reset and the timing
-			if (eaUpdateDone) {
-				eaUpdateDone = false;
+			if (updateDoneFlag) {
+				updateDoneFlag = false;
 
 				ea.process_without_crossover();
 
-				std::cout << "Gen: " << ea.generation << " Best Fitness: " << ea.lastMaxFitness << std::endl;
-				/* if (world.walls.size() == 0) { */
-				/*     if (ea.lastMaxFitness > 30000) { */
-				/*         // change world lvl to a harder one */
-				/*         world = world_lvl2; */
-				/*     } */
-				/* } */
+				printf("Gen: %lu  Best Fitness: %.3f  Average Fitness: %.3f", ea.generation, ea.lastMaxFitness, ea.lastAverageFitness);
+				levelUpProcedure(ea);
 
-				if (saveState) {
-					std::cout << "SAVING..." << std::endl;
+				if (saveFlag) {
+					saveFlag = false;
 
-					int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
-					ea.saveEA("saves/ea_save_" + std::to_string(ea.generation) + "_" + std::to_string(timestamp) + ".json");   
-					mother.saveConfig("saves/net_save_" + std::to_string(ea.generation) + "_" + std::to_string(timestamp) + ".json");   
-
-					std::cout << "ALL SAVED" << std::endl;
-
-					saveState = false;
-					std::cout << "SAVE STATE to FALSE" << std::endl;
+					saveProcedure(ea, mother);
 				}
-
 			}
 		}
-
 	}
 };
