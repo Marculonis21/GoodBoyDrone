@@ -26,6 +26,8 @@ struct EA {
 	std::vector<Agent> agents;
 
 	float lastMaxFitness = 0;
+	float lastAverageFitness = 0;
+
 	uint64_t generation = 0;
 
 	EA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize), motherDescription(mother.describe())  {
@@ -211,8 +213,10 @@ private:
 	std::vector<size_t> fitnessAgents() {
 		std::vector<size_t> eliteIds;
 
+		float fitnessSum = 0;
 		for (int i = 0; i < popSize; ++i) {
 			fitness[i] += 1000 * agents[i]->goalIndex;
+			fitnessSum += fitness[i];
 		}
 
 		const int eliteSize = popSize*0.025;
@@ -224,6 +228,7 @@ private:
 		);
 
 		lastMaxFitness = sortedFitness[0];
+		lastAverageFitness = fitnessSum / popSize;
 
 		for (auto sf : sortedFitness) {
 			size_t i = std::find(fitness.begin(), fitness.end(), sf) - fitness.begin();
