@@ -2,9 +2,7 @@
 
 #include "drone.hpp"
 #include "net.hpp"
-#include <SFML/Graphics/BlendMode.hpp>
-#include <SFML/Graphics/CircleShape.hpp>
-#include <SFML/System/Vector2.hpp>
+#include "SFML/System/Vector2.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
