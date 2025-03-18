@@ -21,10 +21,10 @@ struct AbstractRunner {
 	bool saveFlag = false;
 	bool updateDoneFlag = false; 
 
-	virtual void prepare(std::vector<World> levels) = 0;
+	virtual void prepare(const std::vector<World> &levels) = 0;
 	virtual void run(Drone &drone, Net &mother, EA &ea) = 0;
 
-	void saveProcedure(EA &ea, Net &mother) {
+	void saveProcedure(const EA &ea, const Net &mother) {
 		std::cout << "SAVING..." << std::endl;
 
 		int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
@@ -34,15 +34,19 @@ struct AbstractRunner {
 		std::cout << "ALL SAVED" << std::endl;
 	}
 
-	void levelUpProcedure(EA &ea) {
-		if (ea.lastMaxFitness > 90000 && currentLevel < worldLevels.size()) {
+	void levelUpProcedure(const EA &ea) {
+		if (ea.lastMaxFitness > 50000 && currentLevel < worldLevels.size()) {
 			currentLevel += 1;
 		}
+	}
+
+	void debugPrintProcedure(const EA &ea) { 
+		printf("Gen: %lu Lvl: %d --- BF: %.3f AVGF: %.3f\n", ea.generation, currentLevel, ea.lastMaxFitness, ea.lastAverageFitness);
 	}
 };
 
 struct ConsoleRunner : public AbstractRunner {
-	void prepare(std::vector<World> levels) override {
+	void prepare(const std::vector<World> &levels) override {
 		currentLevel = 0;
 		worldLevels = levels;
 	}
@@ -52,7 +56,7 @@ struct ConsoleRunner : public AbstractRunner {
 		while (true) 
 		{
 			// EA LOGIC
-			updateDoneFlag = ea.update(dt, worldLevels[currentLevel], ea.generation % 500 == 0);
+			updateDoneFlag = ea.update(dt, worldLevels[currentLevel], false);
 
 			// if at the end ea sim was finished, do the EA process, reset and the timing
 			if (updateDoneFlag) {
@@ -60,9 +64,9 @@ struct ConsoleRunner : public AbstractRunner {
 
 				ea.process_without_crossover();
 
-				printf("Gen: %lu  Best Fitness: %.3f  Average Fitness: %.3f\n", ea.generation, ea.lastMaxFitness, ea.lastAverageFitness);
+				debugPrintProcedure(ea);
+
 				// level up condition
-			
 				levelUpProcedure(ea);
 
 				if (ea.generation % 1000 == 0) {
@@ -75,16 +79,15 @@ struct ConsoleRunner : public AbstractRunner {
 
 struct EAWindowRunner : public AbstractRunner {
 	std::unique_ptr<sf::RenderWindow> window;
-	std::unique_ptr<sf::RenderStates> state;
 
 	std::unique_ptr<sf::CircleShape> wallPrefab;
 	std::unique_ptr<sf::CircleShape> goalPrefab;
 
 	std::unique_ptr<Renderer> renderer;
 
-	void prepare(std::vector<World> levels) override {
+	void prepare(const std::vector<World> &levels) override {
 		currentLevel = 0;
-		levels = levels;
+		worldLevels = levels;
 
 		// window prep
 		sf::ContextSettings settings;
@@ -145,9 +148,9 @@ struct EAWindowRunner : public AbstractRunner {
 
 			if (ea.generation % 500 == 0) {
 				goalPrefab->setPosition(worldLevels[currentLevel].goals[ea.agents.at(0)->goalIndex % worldLevels[currentLevel].goals.size()]);
-				renderer->draw_body(ea.agents.at(0).get(), *window, *state);
+				renderer->draw_body(ea.agents.at(0).get(), window.get());
 				if (debugFlag) {
-					renderer->draw_debug(ea.agents.at(0).get(), worldLevels[currentLevel].walls, {}, *window, *state);
+					renderer->draw_debug(ea.agents.at(0).get(), worldLevels[currentLevel].walls, {}, window.get());
 				}
 
 				window->draw(*goalPrefab);
@@ -167,7 +170,7 @@ struct EAWindowRunner : public AbstractRunner {
 
 				ea.process_without_crossover();
 
-				printf("Gen: %lu  Best Fitness: %.3f  Average Fitness: %.3f\n", ea.generation, ea.lastMaxFitness, ea.lastAverageFitness);
+				debugPrintProcedure(ea);
 				levelUpProcedure(ea);
 
 				if (saveFlag) {

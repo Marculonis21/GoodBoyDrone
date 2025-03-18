@@ -9,11 +9,7 @@
 #include "runner.hpp"
 #include "utils.hpp"
 
-#include "BS_thread_pool.hpp"
-
 int main(int argc, char* argv[]) {
-
-    BS::thread_pool pool{10};
 
     std::unique_ptr<AbstractRunner> runner;
 
@@ -52,9 +48,11 @@ int main(int argc, char* argv[]) {
     Drone drone{sf::Vector2f(400,650)};
 
     Net mother;
-    mother.modules.push_back(std::make_unique<Linear>(13, 16));
-    mother.modules.push_back(std::make_unique<Tanh>(16));
-    mother.modules.push_back(std::make_unique<Linear>(16, 4));
+    mother.modules.push_back(std::make_unique<Linear>(13, 32));
+    mother.modules.push_back(std::make_unique<Tanh>(32));
+    mother.modules.push_back(std::make_unique<Linear>(32, 8));
+    mother.modules.push_back(std::make_unique<Tanh>(8));
+    mother.modules.push_back(std::make_unique<Linear>(8, 4));
     mother.modules.push_back(std::make_unique<Tanh>(4));
     mother.initialize();
 

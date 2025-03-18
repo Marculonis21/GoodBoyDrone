@@ -120,9 +120,12 @@ struct Drone {
     size_t goalIndex = 0;
     size_t goalTimer = 0;
 
-    const bool human = false;
+    std::vector<float> lastControls;
 
-	Drone(sf::Vector2f startPos, bool human=false) : startPos(startPos), human(human) { reset(); }
+	Drone(sf::Vector2f startPos) : startPos(startPos) { 
+        lastControls.resize(4);
+        reset(); 
+    }
 
 	void reset() {
 		pos = startPos;
@@ -139,6 +142,11 @@ struct Drone {
 
         thrusterLeft.reset();
         thrusterRight.reset();
+
+        lastControls[0] = 0;
+        lastControls[1] = 0;
+        lastControls[2] = 0;
+        lastControls[3] = 0;
 	}
 
     sf::Vector2f getThrust() {
@@ -187,7 +195,7 @@ struct Drone {
         angularVel += getTorque() * dt;
         angle += angularVel;
 
-        alive = !wait_he_should_be_already_dead(world.boundary);
+        alive = !wait_he_should_be_already_dead(world);
 
         for (auto && w : world.walls) {
             auto v = w.pos - this->pos;
@@ -214,6 +222,9 @@ struct Drone {
         for (int s = 0; s < sensors.size(); ++s) {
             observation[5+s] = 1 - sensors[s].check(this, world.walls, {});
         }
+        /* for (int l = 0; l < lastControls.size(); ++l) { */
+        /*     observation[13+l] = lastControls[l]; */
+        /* } */
     }
 
     void genObservation_no_sensors(std::vector<float> &observation, const World &world) {
@@ -230,6 +241,11 @@ struct Drone {
     }
 
     void control(float lac, float lpc, float rac, float rpc) {
+        lastControls[0] = lac;
+        lastControls[1] = lpc;
+        lastControls[2] = rac;
+        lastControls[3] = rpc;
+
         lpc = (lpc+1) * 0.5;
         rpc = (rpc+1) * 0.5;
 
@@ -242,12 +258,12 @@ private:
         return a.x * b.y + a.y * b.x;
     }
 
-    bool wait_he_should_be_already_dead(const sf::Vector2f &boundary) {
-        return pos.x < 0 || pos.x > boundary.x ||
-               pos.y < 0 || pos.y > boundary.y ||
+    bool wait_he_should_be_already_dead(const World &world) {
+        return pos.x < 0 || pos.x > world.boundary.x ||
+               pos.y < 0 || pos.y > world.boundary.y ||
                angle < -M_PI * 0.5f || 
                angle > +M_PI * 0.5f ||
-               (aliveTimer > 600 && !human) ||
-               (goalIndex >= 10 && !human);
+               aliveTimer > 600 ||
+               goalIndex > 2*world.goals.size();
     }
 };

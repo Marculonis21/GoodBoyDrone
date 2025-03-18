@@ -4,8 +4,8 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Vector2.hpp>
-#include <iostream>
 #include <vector>
 
 #include "drone.hpp"
@@ -55,8 +55,9 @@ public:
         thrusterRightBottom.setFillColor(cThrusterOff);
     }
 
-	void draw_body(const Drone *drone, sf::RenderTarget& target, const sf::RenderStates& state) {
-        base.setPosition(drone->pos);
+	void draw_body(const Drone *drone,
+				   sf::RenderWindow *target) {
+		base.setPosition(drone->pos);
         center.setPosition(drone->pos);
 
         // vector rot
@@ -102,18 +103,18 @@ public:
             thrusterLeftBottom.setFillColor(cThrusterOff);
         }
 
-        target.draw(base, state);
-        target.draw(center, state);
-        target.draw(thrusterLeft, state);
-        target.draw(thrusterRight, state);
-        target.draw(thrusterLeftBottom, state);
-        target.draw(thrusterRightBottom, state);
-    }
+        target->draw(base);
+        target->draw(center);
+        target->draw(thrusterLeft);
+        target->draw(thrusterRight);
+        target->draw(thrusterLeftBottom);
+        target->draw(thrusterRightBottom);
+	}
 
-    void draw_debug(const Drone *drone, 
+	void draw_debug(const Drone *drone, 
                     const std::vector<Wall> &walls, 
                     const std::vector<std::unique_ptr<Drone>> &drones,
-                    sf::RenderTarget& target, const sf::RenderStates& state) {
+                    sf::RenderWindow *target) {
 
         collisionSphere.setRadius(drone->contactRadius);
         collisionSphere.setOrigin(collisionSphere.getRadius(), collisionSphere.getRadius());
@@ -124,7 +125,7 @@ public:
 
         collisionSphere.setPosition(drone->pos);
 
-        target.draw(collisionSphere, state);
+        target->draw(collisionSphere);
 
         for (auto && s : drone->sensors) {
 
@@ -137,14 +138,14 @@ public:
             sf::Vector2f endMax = drone->pos + dir*(drone->contactRadius + s.length);
             sf::Vertex lineMax [] = {{{start.x,  start.y}, sf::Color::White}, 
                                      {{endMax.x, endMax.y}, sf::Color::White}};
-            target.draw(lineMax, 2, sf::Lines, state);
+            target->draw(lineMax, 2, sf::Lines);
 
             // hit
             if (check < 1.0) {
                 sf::Vector2f endCurr = drone->pos + dir*(drone->contactRadius + check*s.length);
                 sf::Vertex lineCurr[] = {{{start.x,   start.y}, sf::Color::Red}, 
                                          {{endCurr.x, endCurr.y}, sf::Color::Red}};
-                target.draw(lineCurr, 2, sf::Lines, state);
+                target->draw(lineCurr, 2, sf::Lines);
             }
         }
     }

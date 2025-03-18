@@ -17,8 +17,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "BS_thread_pool.hpp"
-
 using Individual = std::unique_ptr<Net>;
 using Agent = std::unique_ptr<Drone>;
 
@@ -30,8 +28,6 @@ struct EA {
 
 	uint64_t generation = 0;
 
-	std::unique_ptr<BS::thread_pool<>> thread_pool;
-
 	EA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize), motherDescription(mother.describe())  {
 		assert(popSize % 2 == 0 && "PopSize should be divisible by 2! (Please)");
 
@@ -42,8 +38,6 @@ struct EA {
 
 		initPop(mother);
 		initAgents(father);
-
-		thread_pool = std::make_unique<BS::thread_pool<>>(4);
 	}
 
 	bool update(const float dt, const World &world, bool debug=false) {
@@ -116,7 +110,7 @@ struct EA {
 	}
 
 	void process() {
-		std::cout << "EA Process Default" << std::endl;
+		/* std::cout << "EA Process Default" << std::endl; */
 		auto elite = fitnessAgents();
 		std::vector<Weights> eliteW;
 		for (auto i : elite) {
@@ -139,7 +133,7 @@ struct EA {
 	}
 
 	void process_without_crossover() {
-		std::cout << "EA Process Without crossover" << std::endl;
+		/* std::cout << "EA Process Without crossover" << std::endl; */
 		auto elite = fitnessAgents();
 
 		std::vector<Weights> eliteW;
@@ -147,15 +141,17 @@ struct EA {
 			eliteW.push_back(populationW[i]);
 		}
 
-		const float factor = 0.1;
+		const float factor = 0.2;
 		auto selectedIds = sus(popSize*factor);
 		auto offspringWeights = popUpscaling(selectedIds, std::ceil(1.0/factor));
 		mutation(offspringWeights);
 
 		populationW = offspringWeights;
 
-		for (int i = 0; i < eliteW.size(); ++i) {
-			populationW[i] = eliteW[i];
+		// keep first elite as the first in the pop
+		populationW[0] = eliteW[0];
+		for (int i = 1; i < eliteW.size(); ++i) {
+			populationW[popSize*factor + i] = eliteW[i];
 		}
 
 		generation += 1;
@@ -223,7 +219,7 @@ private:
 			fitnessSum += fitness[i];
 		}
 
-		const int eliteSize = popSize*0.025;
+		const int eliteSize = popSize*0.05;
 		std::vector<float> sortedFitness(eliteSize); //largest n numbers
 		std::partial_sort_copy(
 			std::begin(fitness), std::end(fitness), 
