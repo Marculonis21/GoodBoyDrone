@@ -3,7 +3,9 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/System/Vector2.hpp>
 #include <SFML/Window/ContextSettings.hpp>
+#include <SFML/Window/Mouse.hpp>
 #include <cstdio>
 #include <memory>
 #include <vector>
@@ -85,7 +87,7 @@ struct EAWindowRunner : public AbstractRunner {
 
 	std::unique_ptr<Renderer> renderer;
 
-	void prepare(const std::vector<World> &levels) override {
+	virtual void prepare(const std::vector<World> &levels) override {
 		currentLevel = 0;
 		worldLevels = levels;
 
@@ -182,3 +184,75 @@ struct EAWindowRunner : public AbstractRunner {
 		}
 	}
 };
+
+struct HumanRunner : public EAWindowRunner {
+
+	sf::Vector2f mousePos;
+
+	void prepare(const std::vector<World> &levels) override {
+		EAWindowRunner::prepare(levels);
+	}
+
+	void run(Drone &drone, Net &mother, EA &ea) override {
+		sf::Event event;
+
+		Drone *runnerDrone = ea.agents[0].get();
+		Net *runnerNet = ea.population[0].get();
+		World runnerWorld = worldLevels[currentLevel];
+
+		std::vector<float> observation;
+		observation.resize(13);
+
+		while (window->isOpen()) 
+		{
+			// EVENTS
+			while (window->pollEvent(event)) {
+				if ((event.type == sf::Event::Closed) ||
+					((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Escape))) {
+					window->close();
+					break;
+				}
+				if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::F1)) {
+					debugFlag = false;
+				}
+				if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::F2)) {
+					debugFlag = true;
+				}
+				if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Space)) {
+					runnerDrone->reset();
+				}
+			}
+
+			window->clear();
+
+			for (auto && w : worldLevels[currentLevel].walls) {
+				wallPrefab->setPosition(w.pos);
+				wallPrefab->setRadius(w.radius);
+				wallPrefab->setOrigin(w.radius,w.radius);
+				window->draw(*wallPrefab);
+			}
+
+			// set the goal under cursosr
+			mousePos = sf::Vector2f(sf::Mouse::getPosition(*window));
+			runnerWorld.goals[0] = mousePos;
+
+			// don't let the drone die
+			runnerDrone->aliveTimer = 0;
+			runnerDrone->update(dt, runnerWorld);
+
+			runnerDrone->genObservation_with_sensors(observation, runnerWorld);
+			Output controls = runnerNet->predict(observation);
+			runnerDrone->control(controls[0], controls[1], controls[2], controls[3]);
+
+			renderer->draw_body(runnerDrone, window.get());
+			if (debugFlag) {
+				renderer->draw_debug(runnerDrone, runnerWorld.walls, {}, window.get());
+			}
+
+			goalPrefab->setPosition(mousePos);
+			window->draw(*goalPrefab);
+			window->display();
+		}
+	}
+};
+

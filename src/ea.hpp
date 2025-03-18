@@ -22,6 +22,7 @@ using Agent = std::unique_ptr<Drone>;
 
 struct EA {
 	std::vector<Agent> agents;
+	std::vector<Individual> population;
 
 	float lastMaxFitness = 0;
 	float lastAverageFitness = 0;
@@ -392,7 +393,6 @@ private:
 		}
 	}
 
-	std::vector<Individual> population;
 	std::vector<Weights> populationW;
 	std::vector<float> fitness;
 
