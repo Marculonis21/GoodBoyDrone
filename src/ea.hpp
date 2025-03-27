@@ -357,6 +357,8 @@ private:
 		}
 
 		std::uniform_real_distribution<float> weightDistr(-0.1f, 0.1f);
+		std::uniform_real_distribution<float> chanceDistr(0.0f, 1.0f);
+		const float wChangeProb = 0.1f;
 
 		// for each of the selected ones
 		for (int i = 0; i < selectedIds.size(); ++i) {
@@ -367,7 +369,9 @@ private:
 				// go through all of their weights and update them by a little
 				for (int w = 0; w < newPopW[i].size(); ++w) {
 					// WARN: let's say that we don't care about weights > 1 or < -1, we'll see how that goes
-					o1.push_back(newPopW[i][w] + weightDistr(gen));
+					
+					// prob chance that a specific w is going to be changed (otherwise just coppied)
+					o1.push_back(newPopW[i][w] + ((chanceDistr(gen) < wChangeProb) ? weightDistr(gen) : 0.0f));
 				}
 
 				newPopW.push_back(o1);

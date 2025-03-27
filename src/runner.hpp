@@ -7,6 +7,7 @@
 #include <SFML/Window/ContextSettings.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <cstdio>
+#include <exception>
 #include <memory>
 #include <vector>
 
@@ -37,9 +38,9 @@ struct AbstractRunner {
 	}
 
 	void levelUpProcedure(const EA &ea) {
-		if (ea.lastMaxFitness > 50000 && currentLevel < worldLevels.size()) {
-			currentLevel += 1;
-		}
+		/* if (ea.lastMaxFitness > 50000 && currentLevel < worldLevels.size()) { */
+		/* 	currentLevel += 1; */
+		/* } */
 	}
 
 	void debugPrintProcedure(const EA &ea) { 
@@ -142,17 +143,19 @@ struct EAWindowRunner : public AbstractRunner {
 				window->draw(*wallPrefab);
 			}
 
-			/* sf::Vector2i mp = sf::Mouse::getPosition(window); */
+			/* sf::Vector2i mp = sf::Mouse::getPosition(*window); */
 			/* drone.pos = sf::Vector2f{mp}; */
 
 			// EA LOGIC
+			
+			// debug run
 			updateDoneFlag = ea.update(dt, worldLevels[currentLevel], ea.generation % 500 == 0);
 
 			if (ea.generation % 500 == 0) {
 				goalPrefab->setPosition(worldLevels[currentLevel].goals[ea.agents.at(0)->goalIndex % worldLevels[currentLevel].goals.size()]);
 				renderer->draw_body(ea.agents.at(0).get(), window.get());
 				if (debugFlag) {
-					renderer->draw_debug(ea.agents.at(0).get(), worldLevels[currentLevel].walls, {}, window.get());
+					renderer->draw_debug(ea.agents.at(0).get(), worldLevels[currentLevel], {}, window.get());
 				}
 
 				window->draw(*goalPrefab);
@@ -160,11 +163,15 @@ struct EAWindowRunner : public AbstractRunner {
 			}
 
 			// SINGLE LOGIC
-			/* drone.update(dt, boundary, walls); */
-			/* renderer.draw_body(&drone, window, state); */
-			/* if (drawDebug) { */
-			/*     renderer.draw_debug(&drone, walls, {}, window, state); */
+			/* drone.update(dt, worldLevels[currentLevel]); */
+			/* renderer->draw_body(&drone, window.get()); */
+			/* if (debugFlag) { */
+			/*     renderer->draw_debug(&drone,worldLevels[currentLevel], {}, window.get()); */
 			/* } */
+			/* std::vector<float> obs(17); */
+			/* drone.genObservation_with_sensors(obs, worldLevels[currentLevel]); */
+			/* window->draw(*goalPrefab); */
+			/* window->display(); */
 
 			// if at the end ea sim was finished, do the EA process, reset and the timing
 			if (updateDoneFlag) {
@@ -246,7 +253,7 @@ struct HumanRunner : public EAWindowRunner {
 
 			renderer->draw_body(runnerDrone, window.get());
 			if (debugFlag) {
-				renderer->draw_debug(runnerDrone, runnerWorld.walls, {}, window.get());
+				renderer->draw_debug(runnerDrone, runnerWorld, {}, window.get());
 			}
 
 			goalPrefab->setPosition(mousePos);

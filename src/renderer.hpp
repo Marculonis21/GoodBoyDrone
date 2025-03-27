@@ -112,7 +112,7 @@ public:
 	}
 
 	void draw_debug(const Drone *drone, 
-                    const std::vector<Wall> &walls, 
+                    const World &world, 
                     const std::vector<std::unique_ptr<Drone>> &drones,
                     sf::RenderWindow *target) {
 
@@ -132,7 +132,7 @@ public:
             sf::Vector2f dir{cos(drone->angle+s.angle), sin(drone->angle+s.angle)};
             sf::Vector2f start = drone->pos + dir*drone->contactRadius;
 
-            float check = s.check(drone, walls, drones);
+            float check = s.check(drone, world, drones);
 
             // free sensor without 
             sf::Vector2f endMax = drone->pos + dir*(drone->contactRadius + s.length);

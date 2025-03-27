@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <math.h>
 #include <vector>
@@ -56,19 +57,37 @@ struct Drone {
         Sensor(float angle, float length) : angle(angle), length(length) { }
 
         float check(const Drone* from, 
-                    const std::vector<Wall> &walls, 
+                    const World &world, 
                     const std::vector<std::unique_ptr<Drone>> &drones) const {
             sf::Vector2f dir{cos(angle+from->angle), sin(angle+from->angle)};
 
             // ray march - here we goooo!
             sf::Vector2f test = from->pos + dir*from->contactRadius;
 
+            const std::vector<sf::Vector2f> worldWalls {
+                sf::Vector2f{1,0},
+                sf::Vector2f{0,1},
+                sf::Vector2f{-1,0},
+                sf::Vector2f{0,-1}
+            };
+
             float checked = 0;
             while (checked < length) {
                 float closest = std::numeric_limits<float>::max();
-                float check;
-                for (auto && w : walls) {
+                float check = 0;
+                for (auto && w : world.walls) {
                     check = dist(w.pos - test) - w.radius;
+                    if (check < closest) {
+                        closest = check;
+                    }
+                }
+
+                // make the outer edge a wall too
+
+                for (int i = 0; i < worldWalls.size(); ++i) {
+                    check = dist(sf::Vector2f{test.x*worldWalls[i].x, test.y*worldWalls[i].y});
+                    if (i > 1) { check = world.boundary.x - check; }
+
                     if (check < closest) {
                         closest = check;
                     }
@@ -220,8 +239,9 @@ struct Drone {
         observation[3] = goalDist.x / world.boundary.x;
         observation[4] = goalDist.y / world.boundary.y;
         for (int s = 0; s < sensors.size(); ++s) {
-            observation[5+s] = 1 - sensors[s].check(this, world.walls, {});
+            observation[5+s] = 1 - sensors[s].check(this, world, {});
         }
+
         /* for (int l = 0; l < lastControls.size(); ++l) { */
         /*     observation[13+l] = lastControls[l]; */
         /* } */
