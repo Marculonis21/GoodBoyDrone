@@ -7,11 +7,13 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <exception>
 #include <functional>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <random>
 #include <string>
 #include <unordered_map>
@@ -44,7 +46,7 @@ struct EA {
 	bool update(const float dt, const World &world, bool debug=false) {
 		// WARN: observation size is important for memory!
 		std::vector<float> observation;
-		observation.resize(13);
+		observation.resize(15);
 
 		Output output;
 
@@ -83,21 +85,35 @@ struct EA {
 			}
 
 			// fitness calculation
-			float expGx = exp(-abs(goalDist.x)/world.boundary.x);
-			float expGy = exp(-abs(goalDist.y)/world.boundary.y);
+			/* const float k = 2.5f; */
+			/* float expGx = exp((-abs(goalDist.x)/world.boundary.x) * k); */
+			/* float expGy = exp((-abs(goalDist.y)/world.boundary.y) * k); */
 
-			fitness[i] += (drone->goalIndex+1)*(expGx + expGy);
+			float cosGx = cos((-goalDist.x/world.boundary.x) * M_PI/2.0f);
+			float cosGy = cos((-goalDist.y/world.boundary.y) * M_PI/2.0f);
+			cosGx = pow(cosGx, 4.0f);
+			cosGy = pow(cosGy, 4.0f);
+			// take the min because we want to penalize individuals going away
+			float cosG = std::min(cosGx, cosGy);
+
+			/* fitness[i] += (drone->goalIndex+1)*(expGx + expGy); */
+			fitness[i] += (drone->goalIndex+1)*(cosG);
 
 			if (debug) {
 				if (i == 0) {
 					std::cout << "DEBUG:" << std::endl;
 					std::cout << "GD: " << goalDist.x/world.boundary.x << "," << goalDist.y/world.boundary.y << std::endl;
-					std::cout << "FGD: " << (drone->goalIndex+1)*(expGx + expGy) << std::endl;
+					/* std::cout << "FGD: " << (drone->goalIndex+1)*(expGx + expGy) << std::endl; */
+					std::cout << "FGD: " << (drone->goalIndex+1)*(cosG) << std::endl;
 					std::cout << "Sensors: ["; 
 					for (int i = 0; i < 8; ++i) {
 						std::cout << observation[5+i] << ", ";
 					}
 					std::cout << "]" << std::endl;
+
+					std::cout << "velx: " << observation[0] << ", vely: " << observation[1] << std::endl;
+					std::cout << "cAngle: " << observation[2] << ", sAngle: " << observation[3] << std::endl;
+					std::cout << "avel: " << observation[4] << std::endl;
 				}
 			}
 
@@ -143,7 +159,8 @@ struct EA {
 		}
 
 		const float factor = 0.2;
-		auto selectedIds = sus(popSize*factor);
+		/* auto selectedIds = sus(popSize*factor); */
+		auto selectedIds = top_n(popSize*factor);
 		auto offspringWeights = popUpscaling(selectedIds, std::ceil(1.0/factor));
 		mutation(offspringWeights);
 
@@ -284,9 +301,6 @@ private:
 	std::vector<size_t> sus(const int N) {
 		std::vector<size_t> selectedIds;
 
-		// A hope to have the most fit one as the first one (for rendering and stuff...)
-		std::vector<float> selectedFs;  
-
 		float fSum = 0;
 		for (auto f : fitness) {
 			fSum += f;
@@ -307,10 +321,27 @@ private:
 
 				if (selectionPoint <= testSum) {
 					selectedIds.push_back(i);
-					selectedFs.push_back(fitness[i]);
 					break;
 				}
 			}
+		}
+
+		return selectedIds;
+	}
+
+	std::vector<size_t> top_n(const int N) {
+		std::vector<size_t> selectedIds;
+
+		std::vector<size_t> indices(fitness.size());
+
+		std::iota(indices.begin(), indices.end(), 0);
+		std::sort(indices.begin(), indices.end(),
+				[&](size_t a, size_t b) -> bool {
+					return fitness[a] > fitness[b];
+				});
+	
+		for (int i = 0; i < N; ++i) {
+			selectedIds.push_back(indices[i]);
 		}
 
 		return selectedIds;
@@ -358,7 +389,7 @@ private:
 
 		std::uniform_real_distribution<float> weightDistr(-0.1f, 0.1f);
 		std::uniform_real_distribution<float> chanceDistr(0.0f, 1.0f);
-		const float wChangeProb = 0.1f;
+		const float wChangeProb = 0.25f;
 
 		// for each of the selected ones
 		for (int i = 0; i < selectedIds.size(); ++i) {

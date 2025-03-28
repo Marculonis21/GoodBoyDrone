@@ -228,18 +228,21 @@ struct Drone {
 	}
 
     void genObservation_with_sensors(std::vector<float> &observation, const World &world) {
-        assert(observation.size() == 13 && "genObservation_with_sensors wants to generate 13 obs");
+        assert(observation.size() == 15 && "genObservation_with_sensors wants to generate 15 obs");
 
         sf::Vector2f goalDist = world.goals[goalIndex % world.goals.size()] - pos;
 
         // creating observations 
         observation[0] = vel.x / 20.0f;
         observation[1] = vel.y / 20.0f;
-        observation[2] = angle / HALF_PI;
-        observation[3] = goalDist.x / world.boundary.x;
-        observation[4] = goalDist.y / world.boundary.y;
+        observation[2] = cos(angle);
+        observation[3] = sin(angle);
+        observation[4] = angularVel;
+        observation[5] = goalDist.x / world.boundary.x;
+        observation[6] = goalDist.y / world.boundary.y;
+
         for (int s = 0; s < sensors.size(); ++s) {
-            observation[5+s] = 1 - sensors[s].check(this, world, {});
+            observation[7+s] = 1 - sensors[s].check(this, world, {});
         }
 
         /* for (int l = 0; l < lastControls.size(); ++l) { */
