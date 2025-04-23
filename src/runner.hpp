@@ -147,8 +147,6 @@ struct EAWindowRunner : public AbstractRunner {
 			/* drone.pos = sf::Vector2f{mp}; */
 
 			// EA LOGIC
-			
-			// debug run
 			updateDoneFlag = ea.update(dt, worldLevels[currentLevel], ea.generation % 500 == 0);
 
 			if (ea.generation % 500 == 0) {

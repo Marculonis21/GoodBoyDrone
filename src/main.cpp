@@ -11,7 +11,6 @@
 
 int main(int argc, char* argv[]) {
 
-
     assert(argc > 1 && "We expect more than one argument for Runner");
 
     World world {
@@ -38,11 +37,11 @@ int main(int argc, char* argv[]) {
     Drone drone{sf::Vector2f(400,650)};
 
     Net mother;
-    mother.modules.push_back(std::make_unique<Linear>(15, 16));
+    mother.modules.push_back(std::make_unique<Linear>(6, 16));
     mother.modules.push_back(std::make_unique<Tanh>(16));
-    mother.modules.push_back(std::make_unique<Linear>(16, 8));
-    mother.modules.push_back(std::make_unique<Tanh>(8));
-    mother.modules.push_back(std::make_unique<Linear>(8, 4));
+    /* mother.modules.push_back(std::make_unique<Linear>(16, 8)); */
+    /* mother.modules.push_back(std::make_unique<Tanh>(8)); */
+    mother.modules.push_back(std::make_unique<Linear>(16, 4));
     mother.modules.push_back(std::make_unique<Tanh>(4));
     mother.initialize();
 

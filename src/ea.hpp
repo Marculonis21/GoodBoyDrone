@@ -7,7 +7,6 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
-#include <exception>
 #include <functional>
 #include <iostream>
 #include <iterator>
@@ -31,6 +30,8 @@ struct EA {
 
 	uint64_t generation = 0;
 
+	size_t input_size;
+
 	EA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize), motherDescription(mother.describe())  {
 		assert(popSize % 2 == 0 && "PopSize should be divisible by 2! (Please)");
 
@@ -41,12 +42,14 @@ struct EA {
 
 		initPop(mother);
 		initAgents(father);
+
+		input_size = mother.input_size;
 	}
 
 	bool update(const float dt, const World &world, bool debug=false) {
 		// WARN: observation size is important for memory!
 		std::vector<float> observation;
-		observation.resize(15);
+		observation.resize(input_size);
 
 		Output output;
 
@@ -64,7 +67,8 @@ struct EA {
 			if (!drone->alive) continue;
 			someAlive = true;
 
-			drone->genObservation_with_sensors(observation, world);
+			/* drone->genObservation_with_sensors(observation, world); */
+			drone->genObservation_no_sensors(observation, world);
 
 			// hard-coded goal collection
 			sf::Vector2f goalDist = world.goals[drone->goalIndex % world.goals.size()] - drone->pos;

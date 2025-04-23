@@ -228,21 +228,21 @@ struct Drone {
 	}
 
     void genObservation_with_sensors(std::vector<float> &observation, const World &world) {
-        assert(observation.size() == 15 && "genObservation_with_sensors wants to generate 15 obs");
+        assert(observation.size() == 14 && "genObservation_with_sensors wants to generate 14 obs");
 
         sf::Vector2f goalDist = world.goals[goalIndex % world.goals.size()] - pos;
 
         // creating observations 
         observation[0] = vel.x / 20.0f;
         observation[1] = vel.y / 20.0f;
-        observation[2] = cos(angle);
-        observation[3] = sin(angle);
-        observation[4] = angularVel;
-        observation[5] = goalDist.x / world.boundary.x;
-        observation[6] = goalDist.y / world.boundary.y;
+        observation[2] = angularVel;
+        observation[3] = cos(angle);
+        /* observation[4] = sin(angle); */
+        observation[4] = goalDist.x / world.boundary.x;
+        observation[5] = goalDist.y / world.boundary.y;
 
         for (int s = 0; s < sensors.size(); ++s) {
-            observation[7+s] = 1 - sensors[s].check(this, world, {});
+            observation[6+s] = 1 - sensors[s].check(this, world, {});
         }
 
         /* for (int l = 0; l < lastControls.size(); ++l) { */
@@ -251,16 +251,18 @@ struct Drone {
     }
 
     void genObservation_no_sensors(std::vector<float> &observation, const World &world) {
-        assert(observation.size() == 5 && "genObservation_no_sensors wants to generate 5 obs");
+        assert(observation.size() == 6 && "genObservation_no_sensors wants to generate 6 obs");
 
         sf::Vector2f goalDist = world.goals[goalIndex % world.goals.size()] - pos;
 
         // creating observations 
         observation[0] = vel.x / 20.0f;
         observation[1] = vel.y / 20.0f;
-        observation[2] = angle / HALF_PI;
-        observation[3] = goalDist.x / world.boundary.x;
-        observation[4] = goalDist.y / world.boundary.y;
+        observation[2] = angularVel;
+        observation[3] = cos(angle);
+        /* observation[4] = sin(angle); */
+        observation[4] = goalDist.x / world.boundary.x;
+        observation[5] = goalDist.y / world.boundary.y;
     }
 
     void control(float lac, float lpc, float rac, float rpc) {

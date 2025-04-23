@@ -141,6 +141,7 @@ struct Tanh : public Module {
 
 struct Net {
     std::vector<std::unique_ptr<Module>> modules;
+    size_t input_size;
 
     Net() = default;
 
@@ -148,6 +149,8 @@ struct Net {
         for (auto && mod : modules) {
             mod->initialize();
         }
+
+        input_size = modules[0]->in;
     }
 
     Output predict(Input input) const {
