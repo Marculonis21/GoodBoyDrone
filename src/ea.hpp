@@ -21,10 +21,12 @@
 using Individual = std::unique_ptr<Net>;
 using Agent = std::unique_ptr<Drone>;
 
-struct EA {
-	std::vector<Agent> agents;
-	std::vector<Individual> population;
+struct EAItem {
+	Net *net; 
+	Drone *drone; 
+};
 
+struct EA {
 	float lastMaxFitness = 0;
 	float lastAverageFitness = 0;
 
@@ -44,6 +46,10 @@ struct EA {
 		initAgents(father);
 
 		input_size = mother.input_size;
+	}
+
+	const EAItem operator [](int idx) const {
+		return EAItem{population[idx].get(), agents[idx].get()};
 	}
 
 	bool update(const float dt, const World &world, bool debug=false) {
@@ -89,10 +95,6 @@ struct EA {
 			}
 
 			// fitness calculation
-			/* const float k = 2.5f; */
-			/* float expGx = exp((-abs(goalDist.x)/world.boundary.x) * k); */
-			/* float expGy = exp((-abs(goalDist.y)/world.boundary.y) * k); */
-
 			float cosGx = cos((-goalDist.x/world.boundary.x) * M_PI/2.0f);
 			float cosGy = cos((-goalDist.y/world.boundary.y) * M_PI/2.0f);
 			cosGx = pow(cosGx, 4.0f);
@@ -100,14 +102,12 @@ struct EA {
 			// take the min because we want to penalize individuals going away
 			float cosG = std::min(cosGx, cosGy);
 
-			/* fitness[i] += (drone->goalIndex+1)*(expGx + expGy); */
 			fitness[i] += (drone->goalIndex+1)*(cosG);
 
 			if (debug) {
 				if (i == 0) {
 					std::cout << "DEBUG:" << std::endl;
 					std::cout << "GD: " << goalDist.x/world.boundary.x << "," << goalDist.y/world.boundary.y << std::endl;
-					/* std::cout << "FGD: " << (drone->goalIndex+1)*(expGx + expGy) << std::endl; */
 					std::cout << "FGD: " << (drone->goalIndex+1)*(cosG) << std::endl;
 					std::cout << "Sensors: ["; 
 					for (int i = 0; i < 8; ++i) {
@@ -138,7 +138,6 @@ struct EA {
 			eliteW.push_back(populationW[i]);
 		}
 
-		/* auto selectedIds = tournamentSelection(); */
 		auto selectedIds = sus(popSize);
 		auto offspringWeights = crossover(selectedIds);
 		mutation(offspringWeights);
@@ -163,7 +162,6 @@ struct EA {
 		}
 
 		const float factor = 0.2;
-		/* auto selectedIds = sus(popSize*factor); */
 		auto selectedIds = top_n(popSize*factor);
 		auto offspringWeights = popUpscaling(selectedIds, std::ceil(1.0/factor));
 		mutation(offspringWeights);
@@ -218,6 +216,14 @@ struct EA {
 	}
 
 private:
+	std::vector<Agent> agents;
+	std::vector<Individual> population;
+	std::vector<Weights> populationW;
+	std::vector<float> fitness;
+
+	const size_t popSize;
+	const json motherDescription;
+
 	void initPop(const Net &mother) {
 		for (int i = 0; i < popSize; ++i) {
 			population.push_back(std::make_unique<Net>());
@@ -432,10 +438,4 @@ private:
 		}
 	}
 
-	std::vector<Weights> populationW;
-	std::vector<float> fitness;
-
-	const size_t popSize;
-	/* const Net mother; */
-	const json motherDescription;
 };

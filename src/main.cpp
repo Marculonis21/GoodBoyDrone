@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
     Drone drone{sf::Vector2f(400,650)};
 
     Net mother;
-    mother.modules.push_back(std::make_unique<Linear>(6, 16));
+    mother.modules.push_back(std::make_unique<Linear>(7, 16));
     mother.modules.push_back(std::make_unique<Tanh>(16));
     /* mother.modules.push_back(std::make_unique<Linear>(16, 8)); */
     /* mother.modules.push_back(std::make_unique<Tanh>(8)); */
@@ -60,13 +60,13 @@ int main(int argc, char* argv[]) {
         std::string eaFile = argv[2];
         std::string netFile = argv[3];
 
-        Net humanMOTHER = Net::loadConfig(netFile);
+        mother = Net::loadConfig(netFile);
 
-        EA humanEA{250, humanMOTHER, drone};
+        EA humanEA{1, mother, drone};
         humanEA.loadPopEA(eaFile);
 
         runner->prepare(std::vector<World>{world, world_lvl2});
-        runner->run(drone, humanMOTHER, humanEA);
+        runner->run(drone, mother, humanEA);
 
         return 0;
     }

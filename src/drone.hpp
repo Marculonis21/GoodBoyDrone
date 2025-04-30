@@ -228,7 +228,7 @@ struct Drone {
 	}
 
     void genObservation_with_sensors(std::vector<float> &observation, const World &world) {
-        assert(observation.size() == 14 && "genObservation_with_sensors wants to generate 14 obs");
+        assert(observation.size() == 15 && "genObservation_with_sensors wants to generate 15 obs");
 
         sf::Vector2f goalDist = world.goals[goalIndex % world.goals.size()] - pos;
 
@@ -237,12 +237,12 @@ struct Drone {
         observation[1] = vel.y / 20.0f;
         observation[2] = angularVel;
         observation[3] = cos(angle);
-        /* observation[4] = sin(angle); */
-        observation[4] = goalDist.x / world.boundary.x;
-        observation[5] = goalDist.y / world.boundary.y;
+        observation[4] = sin(angle);
+        observation[5] = goalDist.x / world.boundary.x;
+        observation[6] = goalDist.y / world.boundary.y;
 
         for (int s = 0; s < sensors.size(); ++s) {
-            observation[6+s] = 1 - sensors[s].check(this, world, {});
+            observation[7+s] = 1 - sensors[s].check(this, world, {});
         }
 
         /* for (int l = 0; l < lastControls.size(); ++l) { */
@@ -251,7 +251,7 @@ struct Drone {
     }
 
     void genObservation_no_sensors(std::vector<float> &observation, const World &world) {
-        assert(observation.size() == 6 && "genObservation_no_sensors wants to generate 6 obs");
+        assert(observation.size() == 7 && "genObservation_no_sensors wants to generate 7 obs");
 
         sf::Vector2f goalDist = world.goals[goalIndex % world.goals.size()] - pos;
 
@@ -260,9 +260,9 @@ struct Drone {
         observation[1] = vel.y / 20.0f;
         observation[2] = angularVel;
         observation[3] = cos(angle);
-        /* observation[4] = sin(angle); */
-        observation[4] = goalDist.x / world.boundary.x;
-        observation[5] = goalDist.y / world.boundary.y;
+        observation[4] = sin(angle);
+        observation[5] = goalDist.x / world.boundary.x;
+        observation[6] = goalDist.y / world.boundary.y;
     }
 
     void control(float lac, float lpc, float rac, float rpc) {

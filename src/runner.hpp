@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <exception>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "drone.hpp"
@@ -27,12 +28,12 @@ struct AbstractRunner {
 	virtual void prepare(const std::vector<World> &levels) = 0;
 	virtual void run(Drone &drone, Net &mother, EA &ea) = 0;
 
-	void saveProcedure(const EA &ea, const Net &mother) {
+	void saveProcedure(const EA &ea, const Net &mother) const {
 		std::cout << "SAVING..." << std::endl;
 
 		int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
-		ea.saveEA("saves/ea_save_" + std::to_string(ea.generation) + "_" + std::to_string(timestamp) + ".json");   
-		mother.saveConfig("saves/net_save_" + std::to_string(ea.generation) + "_" + std::to_string(timestamp) + ".json");   
+		ea.saveEA(        "saves/ea_save_"  + std::to_string(ea.generation) + "_" + std::to_string(ea.lastMaxFitness) + "_" + std::to_string(timestamp) + ".json");   
+		mother.saveConfig("saves/net_save_" + std::to_string(ea.generation) + "_" + std::to_string(ea.lastMaxFitness) + "_" + std::to_string(timestamp) + ".json");   
 
 		std::cout << "ALL SAVED" << std::endl;
 	}
@@ -43,7 +44,7 @@ struct AbstractRunner {
 		/* } */
 	}
 
-	void debugPrintProcedure(const EA &ea) { 
+	void debugPrintProcedure(const EA &ea) const { 
 		printf("Gen: %lu Lvl: %d --- BF: %.3f AVGF: %.3f\n", ea.generation, currentLevel, ea.lastMaxFitness, ea.lastAverageFitness);
 	}
 };
@@ -150,10 +151,12 @@ struct EAWindowRunner : public AbstractRunner {
 			updateDoneFlag = ea.update(dt, worldLevels[currentLevel], ea.generation % 500 == 0);
 
 			if (ea.generation % 500 == 0) {
-				goalPrefab->setPosition(worldLevels[currentLevel].goals[ea.agents.at(0)->goalIndex % worldLevels[currentLevel].goals.size()]);
-				renderer->draw_body(ea.agents.at(0).get(), window.get());
+				EAItem best = ea[0];
+
+				goalPrefab->setPosition(worldLevels[currentLevel].goals[best.drone->goalIndex % worldLevels[currentLevel].goals.size()]);
+				renderer->draw_body(best.drone, window.get());
 				if (debugFlag) {
-					renderer->draw_debug(ea.agents.at(0).get(), worldLevels[currentLevel], {}, window.get());
+					renderer->draw_debug(best.drone, worldLevels[currentLevel], {}, window.get());
 				}
 
 				window->draw(*goalPrefab);
@@ -201,12 +204,14 @@ struct HumanRunner : public EAWindowRunner {
 	void run(Drone &drone, Net &mother, EA &ea) override {
 		sf::Event event;
 
-		Drone *runnerDrone = ea.agents[0].get();
-		Net *runnerNet = ea.population[0].get();
+		EAItem best = ea[0];
+		Drone *runnerDrone = best.drone;
+		Net *runnerNet = best.net;
+
 		World runnerWorld = worldLevels[currentLevel];
 
 		std::vector<float> observation;
-		observation.resize(13);
+		observation.resize(mother.input_size);
 
 		while (window->isOpen()) 
 		{
@@ -245,6 +250,7 @@ struct HumanRunner : public EAWindowRunner {
 			runnerDrone->aliveTimer = 0;
 			runnerDrone->update(dt, runnerWorld);
 
+			// WARN: THIS IS PROBLEMATIC
 			runnerDrone->genObservation_with_sensors(observation, runnerWorld);
 			Output controls = runnerNet->predict(observation);
 			runnerDrone->control(controls[0], controls[1], controls[2], controls[3]);
