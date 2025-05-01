@@ -141,17 +141,14 @@ struct EA {
 
 		// Fill the rest with new offsprings
 		for (int i = parentCount; i < popSize; ++i) {
-			std::cout << "FILLING USING: i: " << i << " using id: " << i-parentCount << std::endl;
 			newPopulationW[i] = offspringPopW[i-parentCount];
 		}
-		std::cout << "FILLED" << std::endl;
 
-		/* convert_WeightsToMeta(newPopulationW); */
+		convert_WeightsToMeta(newPopulationW);
 
-		/* permuteMeta(fitnessOrder); */
+		permuteMeta(fitnessOrder);
 
-		/* convert_MetaToWeights(); */
-		return ;
+		convert_MetaToWeights();
 
 		generation += 1;
 		resetAgents();
@@ -222,7 +219,6 @@ private:
 		std::iota(idx.begin(), idx.end(), 0);
 		std::sort(idx.begin(), idx.end(), [&](size_t a, size_t b){return fitness[a] > fitness[b];});
 
-		std::cout << "F0: " << fitness[idx[0]] << " F1: " << fitness[idx[1]] << std::endl;
 		assert(fitness[idx[0]] >= fitness[idx[1]] && "Fitness sorting order incorrect");
 
 		lastMaxFitness = fitness[idx[0]];
@@ -267,8 +263,8 @@ private:
 	}
 
 	void mutation(std::vector<Weights> &offspringPopW) {
-		const float MUTPROB = 0.05;
-		const float PERTURBATION = 0.5f;
+		const float MUTPROB = 0.025f;
+		const float PERTURBATION = 0.1f;
 
 		/* std::cauchy_distribution<float> chanceDistr(0, 0.3); */
 		std::uniform_real_distribution<float> chanceDistr(0.0, 1.0);
@@ -284,7 +280,7 @@ private:
 
 	std::vector<float> _precompute_markProbability(const std::vector<size_t> &fitnessOrder) {
 		const float MAXFIT = fitness[fitnessOrder[0]];
-		const float MINFIT = fitness[fitnessOrder[popSize]];
+		const float MINFIT = fitness[fitnessOrder[popSize-1]];
 
 		std::vector<float> markProbability;
 		markProbability.reserve(popSize);
@@ -332,7 +328,10 @@ private:
 				}
 			}
 
-			_permuteMarkedMeta(marked, s);
+			/* std::cout << s<<": MARKED: " << marked.size() << std::endl; */
+			if (marked.size() > 1) {
+				_permuteMarkedMeta(marked, s);
+			}
 		}
 	}
 
