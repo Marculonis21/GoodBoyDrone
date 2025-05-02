@@ -7,6 +7,7 @@
 #include <SFML/Window/ContextSettings.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <cstdio>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -25,7 +26,7 @@ struct AbstractRunner {
 	bool updateDoneFlag = false; 
 
 	virtual void prepare(const std::vector<World> &levels) = 0;
-	virtual void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea, const std::string &note="") = 0;
+	virtual void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea, const int maxGen=-1, const std::string &note="") = 0;
 
 	void saveProcedure(const AbstractEA &ea, const Net &mother) const {
 		std::cout << "SAVE CALLED - DISABLED" << std::endl;
@@ -52,6 +53,13 @@ struct AbstractRunner {
 	void debugPrintProcedure(const AbstractEA &ea) const { 
 		printf("Gen: %lu Lvl: %d --- BF: %.3f AVGF: %.3f\n", ea.generation, currentLevel, ea.lastFitnessStats.max, ea.lastFitnessStats.avg);
 	}
+
+	void fitStatsSave(const AbstractEA &ea, std::ofstream &os) const {
+        os << std::to_string(ea.generation) + "," + std::to_string(ea.lastFitnessStats.max) + ","
+		  										  + std::to_string(ea.lastFitnessStats.min) + ","
+		  										  + std::to_string(ea.lastFitnessStats.avg) + ","
+		  										  + std::to_string(ea.lastFitnessStats.med) + "," << std::endl;
+	}
 };
 
 struct ConsoleRunner : public AbstractRunner {
@@ -60,9 +68,15 @@ struct ConsoleRunner : public AbstractRunner {
 		worldLevels = levels;
 	}
 
-	void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea, const std::string &note) override {
+	void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea, const int maxGen, const std::string &note) override {
 
-		while (true) 
+		std::string outpath = "fits/" + note + ".csv";
+		std::ofstream os(outpath);
+		if (note == "") {
+			os.close();
+		}
+
+		while ((maxGen > 0) ? (ea->generation < maxGen) : true) 
 		{
 			// EA LOGIC
 			updateDoneFlag = ea->update(dt, worldLevels[currentLevel], false);
@@ -79,6 +93,10 @@ struct ConsoleRunner : public AbstractRunner {
 
 				if (ea->generation % 1000 == 0) {
 				    saveProcedure(*ea, mother);
+				}
+
+				if (os.is_open()) {
+					fitStatsSave(*ea, os);
 				}
 			}
 		}
@@ -115,7 +133,7 @@ struct EAWindowRunner : public AbstractRunner {
 		renderer = std::make_unique<Renderer>();
 	}
 
-	void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea, const std::string &note) override {
+	void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea, const int maxGen, const std::string &note) override {
 		sf::Event event;
 		while (window->isOpen()) 
 		{
@@ -207,7 +225,7 @@ struct HumanRunner : public EAWindowRunner {
 		EAWindowRunner::prepare(levels);
 	}
 
-	void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea, const std::string &note) override {
+	void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea, const int maxGen, const std::string &note) override {
 		sf::Event event;
 
 		EAItem best = (*ea)[0];

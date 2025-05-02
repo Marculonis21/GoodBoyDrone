@@ -4,7 +4,10 @@
 
 struct EasyEA : public AbstractEA {
 
-	EasyEA(size_t popSize, const Net &mother, const Drone &father) : AbstractEA(popSize, mother, father) { }
+	EasyEA(size_t popSize, const Net &mother, const Drone &father) : AbstractEA(popSize, mother, father) { 
+		initPop(mother);
+		initAgents(father);
+	}
 
 	// PROCESS WITHOUT CROSSOVER
 	void process() override {
@@ -16,9 +19,9 @@ struct EasyEA : public AbstractEA {
 			eliteW.push_back(populationW[i]);
 		}
 
-		const float factor = 0.2;
+		const float factor = 0.25;
 		auto selectedIds = top_n(popSize*factor);
-		auto offspringWeights = popUpscaling(selectedIds, std::ceil(1.0/factor));
+		auto offspringWeights = popUpscaling(selectedIds, 1.0/factor);
 		mutation(offspringWeights);
 
 		populationW = offspringWeights;

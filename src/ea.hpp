@@ -41,11 +41,10 @@ struct AbstractEA {
 		agents.reserve(popSize);
 		fitness.resize(popSize);
 
-		initPop(mother);
-		initAgents(father);
-
 		input_size = mother.input_size;
 	}
+
+	virtual ~AbstractEA() {}
 
 	virtual const EAItem operator [](int idx) const {
 		return EAItem{population[idx].get(), agents[idx].get()};
