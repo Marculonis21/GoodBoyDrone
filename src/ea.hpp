@@ -20,11 +20,18 @@ struct EAItem {
 	Drone *drone; 
 };
 
+struct FitnessStats {
+	float max = 0;
+	float min = 0;
+	float avg = 0;
+	float med = 0;
+};
+
 struct AbstractEA {
-	float lastMaxFitness = 0;
-	float lastAverageFitness = 0;
 	uint64_t generation = 0;
 	size_t input_size;
+
+	FitnessStats lastFitnessStats;
 
 	AbstractEA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize), motherDescription(mother.describe())  {
 		assert(popSize % 2 == 0 && "PopSize should be divisible by 2! (Please)");
@@ -131,11 +138,6 @@ struct AbstractEA {
 		assert(false && "NOT IMPLEMENTED");
 		return 0;
 	};
-
-	/* virtual void saveEA(const std::string &path) const = 0; */
-	/* virtual void loadPopEA(const std::string &path) = 0; */
-	/* virtual void saveEA(const std::string &path) const = 0; */
-	/* virtual void loadPopEA(const std::string &path) = 0; */
 
 protected:
 	std::vector<Agent> agents;

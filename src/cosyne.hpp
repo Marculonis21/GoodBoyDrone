@@ -91,8 +91,10 @@ private:
 
 		assert(fitness[idx[0]] >= fitness[idx[1]] && "Fitness sorting order incorrect");
 
-		lastMaxFitness = fitness[idx[0]];
-		lastAverageFitness = fitnessSum / popSize;
+		lastFitnessStats.max = fitness[idx[0]];
+		lastFitnessStats.min = fitness[idx[popSize-1]];
+		lastFitnessStats.med = fitness[idx[popSize/2]];
+		lastFitnessStats.avg = fitnessSum / popSize;;
 
 		return idx;
 	}

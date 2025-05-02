@@ -6,6 +6,7 @@ struct EasyEA : public AbstractEA {
 
 	EasyEA(size_t popSize, const Net &mother, const Drone &father) : AbstractEA(popSize, mother, father) { }
 
+	// PROCESS WITHOUT CROSSOVER
 	void process() override {
 		/* std::cout << "EasyEA Process Without crossover" << std::endl; */
 		auto elite = fitnessAgents();
@@ -81,20 +82,21 @@ private:
 		}
 
 		const int eliteSize = popSize*0.05;
-		std::vector<float> sortedFitness(eliteSize); //largest n numbers
-		std::partial_sort_copy(
-			std::begin(fitness), std::end(fitness), 
-			std::begin(sortedFitness), std::end(sortedFitness), 
-			std::greater() 
-		);
 
-		lastMaxFitness = sortedFitness[0];
-		lastAverageFitness = fitnessSum / popSize;
+		std::vector<size_t> idx(popSize);
+		std::iota(idx.begin(), idx.end(), 0);
+		std::sort(idx.begin(), idx.end(), [&](size_t a, size_t b){return fitness[a] > fitness[b];});
+		assert(fitness[idx[0]] >= fitness[idx[1]] && "Fitness sorting order incorrect");
 
-		for (auto sf : sortedFitness) {
-			size_t i = std::find(fitness.begin(), fitness.end(), sf) - fitness.begin();
-			eliteIds.push_back(i);
+		for (int i = 0; i < eliteSize; ++i) {
+			eliteIds.push_back(idx[i]);
 		}
+
+		lastFitnessStats.max = fitness[idx[0]];
+		lastFitnessStats.min = fitness[idx[popSize-1]];
+		lastFitnessStats.med = fitness[idx[popSize/2]];
+		lastFitnessStats.avg = fitnessSum / popSize;;
+
 		return eliteIds;
 	}
 

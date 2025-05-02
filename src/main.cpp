@@ -14,27 +14,6 @@ int main(int argc, char* argv[]) {
 
     assert(argc > 1 && "We expect more than one argument for Runner");
 
-    World world {
-        .boundary = sf::Vector2f{winWidth,winHeight},
-        .walls = {},
-        .goals = {
-			sf::Vector2f{200, 200}, 
-			sf::Vector2f{600, 600}, 
-			sf::Vector2f{200, 600},
-			sf::Vector2f{600, 200},
-			sf::Vector2f{400, 650}
-		}
-    };
-
-    const World world_lvl2 {
-        world.boundary,
-        std::vector<Wall>{ 
-            Wall{sf::Vector2f{400, 400}, 100},
-            Wall{sf::Vector2f{300, 400}, 50},
-        },
-        world.goals
-    };
-
     Drone drone{sf::Vector2f(400,650)};
 
     Net mother;
@@ -80,7 +59,28 @@ int main(int argc, char* argv[]) {
     else {
         return 1;
     }
-    
+
+    const World world {
+        .boundary = sf::Vector2f{winWidth,winHeight},
+        .walls = {},
+        .goals = {
+			sf::Vector2f{200, 200}, 
+			sf::Vector2f{600, 600}, 
+			sf::Vector2f{200, 600},
+			sf::Vector2f{600, 200},
+			sf::Vector2f{400, 650}
+		}
+    };
+
+    const World world_lvl2 {
+        world.boundary,
+        std::vector<Wall>{ 
+            Wall{sf::Vector2f{400, 400}, 100},
+            Wall{sf::Vector2f{300, 400}, 50},
+        },
+        world.goals
+    };
+
     runner->prepare(std::vector<World>{world, world_lvl2});
     runner->run(drone, mother, std::move(ea));
 
