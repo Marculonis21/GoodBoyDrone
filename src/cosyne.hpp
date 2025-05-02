@@ -10,20 +10,13 @@ using MetaPopulation = std::vector<SynapsePopulation>;
 
 // https://jmlr.csail.mit.edu/papers/volume9/gomez08a/gomez08a.pdf
 struct CoSyNE : public AbstractEA {
-	float mutprob = 0;
-	float mutcauchy = 0;
-
-	CoSyNE(size_t popSize, const Net &mother, const Drone &father, float mutprob, float mutcauchy) : AbstractEA(popSize, mother, father), synapseCount(mother.getWeights().size()) { 
+	CoSyNE(size_t popSize, const Net &mother, const Drone &father) : AbstractEA(popSize, mother, father), synapseCount(mother.getWeights().size()) { 
 		initPop(mother);
 		initAgents(father);
-
-		this->mutprob = mutprob;
-		this->mutcauchy = mutcauchy;
 	}
 
 	void process() override {
 		std::cout << "COSYNE Process" << std::endl;
-		std::cout << "WITH MP:" << mutprob << " & MC:" << mutcauchy << std::endl;
 
 		std::vector<size_t> fitnessOrder = fitnessAgents();
 
@@ -152,13 +145,10 @@ private:
 	}
 
 	void mutation(std::vector<Weights> &offspringPopW) {
-		/* const float MUTPROB = 0.025f; */
-		const float MUTPROB = mutprob;
-		/* const float PERTURBATION = 0.1f; */
+		const float MUTPROB = 0.05f;
 
 		std::uniform_real_distribution<float> chanceDistr(0.0, 1.0);
-		/* std::cauchy_distribution<float> perturbedDistr(0, 0.3); */
-		std::cauchy_distribution<float> perturbedDistr(0,mutcauchy);
+		std::cauchy_distribution<float> perturbedDistr(0, 0.3);
 
 		for (int i = 0; i < offspringPopW.size(); ++i) {
 			for (int k = 0; k < offspringPopW[i].size(); ++k) {

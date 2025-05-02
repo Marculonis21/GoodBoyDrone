@@ -11,7 +11,7 @@ struct EasyEA : public AbstractEA {
 
 	// PROCESS WITHOUT CROSSOVER
 	void process() override {
-		/* std::cout << "EasyEA Process Without crossover" << std::endl; */
+		std::cout << "EasyEA Process Without crossover" << std::endl;
 		auto elite = fitnessAgents();
 
 		std::vector<Weights> eliteW;

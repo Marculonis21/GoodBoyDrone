@@ -42,10 +42,7 @@ struct AbstractRunner {
 	}
 
 	void levelUpProcedure(const AbstractEA &ea) {
-		std::cout << "LEVEL UP CALLED - DISABLED" << std::endl;
-		return;
-
-		if (ea.lastFitnessStats.max > 50000 && currentLevel < worldLevels.size()) {
+		if (ea.lastFitnessStats.max > 42000 && currentLevel+1 < worldLevels.size()) {
 			currentLevel += 1;
 		}
 	}

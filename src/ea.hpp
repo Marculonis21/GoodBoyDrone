@@ -71,8 +71,8 @@ struct AbstractEA {
 			if (!drone->alive) continue;
 			someAlive = true;
 
-			/* drone->genObservation_with_sensors(observation, world); */
-			drone->genObservation_no_sensors(observation, world);
+			drone->genObservation_with_sensors(observation, world);
+			/* drone->genObservation_no_sensors(observation, world); */
 
 			// hard-coded goal collection
 			sf::Vector2f goalDist = world.goals[drone->goalIndex % world.goals.size()] - drone->pos;
