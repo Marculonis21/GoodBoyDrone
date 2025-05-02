@@ -13,9 +13,11 @@
 #include <vector>
 
 #include "drone.hpp"
+/* #include "ea.hpp" */
 #include "ea.hpp"
 #include "renderer.hpp"
 #include "utils.hpp"
+#include "cosyne.hpp"
 
 struct AbstractRunner {
 	int currentLevel = 0;
@@ -26,9 +28,12 @@ struct AbstractRunner {
 	bool updateDoneFlag = false; 
 
 	virtual void prepare(const std::vector<World> &levels) = 0;
-	virtual void run(Drone &drone, Net &mother, EA &ea) = 0;
+	virtual void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea) = 0;
 
-	void saveProcedure(const EA &ea, const Net &mother) const {
+	void saveProcedure(const AbstractEA &ea, const Net &mother) const {
+		std::cout << "SAVE CALLED - DISABLED" << std::endl;
+		return;
+
 		std::cout << "SAVING..." << std::endl;
 
 		int64_t timestamp = std::chrono::system_clock::now().time_since_epoch().count();
@@ -38,13 +43,16 @@ struct AbstractRunner {
 		std::cout << "ALL SAVED" << std::endl;
 	}
 
-	void levelUpProcedure(const EA &ea) {
-		/* if (ea.lastMaxFitness > 50000 && currentLevel < worldLevels.size()) { */
-		/* 	currentLevel += 1; */
-		/* } */
+	void levelUpProcedure(const AbstractEA &ea) {
+		std::cout << "LEVEL UP CALLED - DISABLED" << std::endl;
+		return;
+
+		if (ea.lastMaxFitness > 50000 && currentLevel < worldLevels.size()) {
+			currentLevel += 1;
+		}
 	}
 
-	void debugPrintProcedure(const EA &ea) const { 
+	void debugPrintProcedure(const AbstractEA &ea) const { 
 		printf("Gen: %lu Lvl: %d --- BF: %.3f AVGF: %.3f\n", ea.generation, currentLevel, ea.lastMaxFitness, ea.lastAverageFitness);
 	}
 };
@@ -55,26 +63,26 @@ struct ConsoleRunner : public AbstractRunner {
 		worldLevels = levels;
 	}
 
-	void run(Drone &drone, Net &mother, EA &ea) override {
+	void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea) override {
 
 		while (true) 
 		{
 			// EA LOGIC
-			updateDoneFlag = ea.update(dt, worldLevels[currentLevel], false);
+			updateDoneFlag = ea->update(dt, worldLevels[currentLevel], false);
 
 			// if at the end ea sim was finished, do the EA process, reset and the timing
 			if (updateDoneFlag) {
 				updateDoneFlag = false;
 
-				ea.process_without_crossover();
+				ea->process();
 
-				debugPrintProcedure(ea);
+				debugPrintProcedure(*ea);
 
 				// level up condition
-				levelUpProcedure(ea);
+				levelUpProcedure(*ea);
 
-				if (ea.generation % 1000 == 0) {
-				    saveProcedure(ea, mother);
+				if (ea->generation % 1000 == 0) {
+				    saveProcedure(*ea, mother);
 				}
 			}
 		}
@@ -111,7 +119,7 @@ struct EAWindowRunner : public AbstractRunner {
 		renderer = std::make_unique<Renderer>();
 	}
 
-	void run(Drone &drone, Net &mother, EA &ea) override {
+	void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea) override {
 		sf::Event event;
 		while (window->isOpen()) 
 		{
@@ -148,10 +156,11 @@ struct EAWindowRunner : public AbstractRunner {
 			/* drone.pos = sf::Vector2f{mp}; */
 
 			// EA LOGIC
-			updateDoneFlag = ea.update(dt, worldLevels[currentLevel], ea.generation % 500 == 0);
+			updateDoneFlag = ea->update(dt, worldLevels[currentLevel], ea->generation % 500 == 0);
 
-			if (ea.generation % 500 == 0) {
-				EAItem best = ea[0];
+			if (ea->generation % 500 == 0) {
+				// WARN: IS THIS CORRECT?
+				EAItem best = (*ea)[0];
 
 				goalPrefab->setPosition(worldLevels[currentLevel].goals[best.drone->goalIndex % worldLevels[currentLevel].goals.size()]);
 				renderer->draw_body(best.drone, window.get());
@@ -178,15 +187,15 @@ struct EAWindowRunner : public AbstractRunner {
 			if (updateDoneFlag) {
 				updateDoneFlag = false;
 
-				ea.process_without_crossover();
+				ea->process();
 
-				debugPrintProcedure(ea);
-				levelUpProcedure(ea);
+				debugPrintProcedure(*ea);
+				levelUpProcedure(*ea);
 
 				if (saveFlag) {
 					saveFlag = false;
 
-					saveProcedure(ea, mother);
+					saveProcedure(*ea, mother);
 				}
 			}
 		}
@@ -201,10 +210,10 @@ struct HumanRunner : public EAWindowRunner {
 		EAWindowRunner::prepare(levels);
 	}
 
-	void run(Drone &drone, Net &mother, EA &ea) override {
+	void run(Drone &drone, Net &mother, std::unique_ptr<AbstractEA> ea) override {
 		sf::Event event;
 
-		EAItem best = ea[0];
+		EAItem best = (*ea)[0];
 		Drone *runnerDrone = best.drone;
 		Net *runnerNet = best.net;
 

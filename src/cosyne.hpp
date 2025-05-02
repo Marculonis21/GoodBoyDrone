@@ -1,11 +1,6 @@
 #pragma once
 
-#include "drone.hpp"
-#include "net.hpp"
-#include <cassert>
-#include <memory>
-#include <random>
-#include <vector>
+#include "ea.hpp"
 
 using Individual = std::unique_ptr<Net>;
 using Agent = std::unique_ptr<Drone>;
@@ -13,121 +8,17 @@ using Agent = std::unique_ptr<Drone>;
 using SynapsePopulation = std::vector<float>;
 using MetaPopulation = std::vector<SynapsePopulation>;
 
-struct EAItem {
-	Net *net; 
-	Drone *drone; 
-};
-
 // https://jmlr.csail.mit.edu/papers/volume9/gomez08a/gomez08a.pdf
-struct EA {
-	float lastMaxFitness = 0;
-	float lastAverageFitness = 0;
+struct CoSyNE : public AbstractEA {
 
-	uint64_t generation = 0;
+	CoSyNE(size_t popSize, const Net &mother, const Drone &father) : AbstractEA(popSize, mother, father), synapseCount(mother.getWeights().size()) { }
 
-	size_t input_size;
-
-	EA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize), synapseCount(mother.getWeights().size()), motherDescription(mother.describe()) {
-
-		population.reserve(popSize);
-		populationW.reserve(popSize);
-		agents.reserve(popSize);
-		fitness.resize(popSize);
-
-		initPop(mother);
-		initAgents(father);
-
-		input_size = mother.input_size;
-	}
-
-	const EAItem operator [](int idx) const {
-		return EAItem{population[idx].get(), agents[idx].get()};
-	}
-
-	bool update(const float dt, const World &world, bool debug=false) {
-		std::vector<float> observation;
-		observation.resize(input_size);
-
-		Output output;
-
-		bool someAlive = false;
-
-		Drone* drone;
-		Net* net;
-
-		for (int i = 0; i < popSize; ++i) {
-			drone = agents[i].get();
-			net = population[i].get();
-
-			drone->update(dt, world);
-
-			if (!drone->alive) continue;
-			someAlive = true;
-
-			/* drone->genObservation_with_sensors(observation, world); */
-			drone->genObservation_no_sensors(observation, world);
-
-			// hard-coded goal collection
-			sf::Vector2f goalDist = world.goals[drone->goalIndex % world.goals.size()] - drone->pos;
-			if (goalDist.x*goalDist.x + goalDist.y*goalDist.y < 100) {
-				drone->goalTimer += 1;
-				// half a second for 60 fps game physics - GOAL COLLECTED
-				if (drone->goalTimer > 30) {
-					drone->goalTimer = 0;
-					drone->goalIndex += 1;
-
-					// reward for quickly obtaining the goal
-					fitness[i] += (drone->goalIndex+1)*(600 - drone->aliveTimer);
-					drone->aliveTimer *= 0.5f;
-				}
-			}
-			else {
-				drone->goalTimer = 0;
-			}
-
-			// fitness calculation
-			float cosGx = cos((-goalDist.x/world.boundary.x) * M_PI/2.0f);
-			float cosGy = cos((-goalDist.y/world.boundary.y) * M_PI/2.0f);
-			cosGx = pow(cosGx, 4.0f);
-			cosGy = pow(cosGy, 4.0f);
-			// take the min because we want to penalize individuals going away
-			float cosG = std::min(cosGx, cosGy);
-
-			fitness[i] += (drone->goalIndex+1)*(cosG);
-
-			if (debug) {
-				if (i == 0) {
-					std::cout << "DEBUG:" << std::endl;
-					std::cout << "GD: " << goalDist.x/world.boundary.x << "," << goalDist.y/world.boundary.y << std::endl;
-					std::cout << "FGD: " << (drone->goalIndex+1)*(cosG) << std::endl;
-					std::cout << "Sensors: ["; 
-					for (int i = 0; i < 8; ++i) {
-						std::cout << observation[5+i] << ", ";
-					}
-					std::cout << "]" << std::endl;
-
-					std::cout << "velx: " << observation[0] << ", vely: " << observation[1] << std::endl;
-					std::cout << "cAngle: " << observation[2] << ", sAngle: " << observation[3] << std::endl;
-					std::cout << "avel: " << observation[4] << std::endl;
-				}
-			}
-
-			output = net->predict(observation);
-			assert(output.size() == 4 && "Drone expects 4 net outputs");
-			drone->control(output[0], output[1], output[2], output[3]);
-		}
-
-		// ask for process
-		return !someAlive;
-	}
-
-	void process() {
+	void process() override {
 		std::cout << "COSYNE Process" << std::endl;
 
 		std::vector<size_t> fitnessOrder = fitnessAgents();
 
 		const size_t parentCount = popSize * 0.25;
-		/* std::cout << "PC" << parentCount << std::endl; */
 
 		auto offspringPopW = crossover(fitnessOrder, parentCount);
 		mutation(offspringPopW);
@@ -155,31 +46,18 @@ struct EA {
 	}
 
 private:
-	void initPop(const Net &mother) {
-		for (int i = 0; i < popSize; ++i) {
-			population.push_back(std::make_unique<Net>());
+	MetaPopulation metaPopulation;
+	const size_t synapseCount;
 
-			for (const auto & mod : mother.modules) {
-				population[i]->modules.push_back(mod->clone());
-			}
-
-			population[i]->initialize();
-			populationW.push_back(population[i]->getWeights());
-		}
+	void initPop(const Net &mother) override {
+		AbstractEA::initPop(mother);
 
 		metaPopulation.reserve(synapseCount);
-
 		for (int s = 0; s < synapseCount; ++s) {
 			metaPopulation.push_back(SynapsePopulation(popSize));
 		}
 
 		convert_WeightsToMeta(populationW);
-	}
-
-	void initAgents(const Drone &father) {
-		for (int i = 0; i < popSize; ++i) {
-			agents.push_back(std::make_unique<Drone>(father.startPos));
-		}
 	}
 
 	void convert_WeightsToMeta(const std::vector<Weights> &popW) {
@@ -198,16 +76,8 @@ private:
 		}
 	}
 
-	void resetAgents() {
-		for (int i = 0; i < popSize; ++i) {
-			agents[i]->reset();
-			population[i]->loadWeights(populationW[i]);
-			fitness[i] = 0;
-		}
-	}
-
 	// get indices corresponding to the sorted fitness values (without sorting them)
-	std::vector<size_t> fitnessAgents() {
+	std::vector<size_t> fitnessAgents() override {
 		// produce the final fitness value for each agent
 		float fitnessSum = 0;
 		for (int i = 0; i < popSize; ++i) {
@@ -334,16 +204,5 @@ private:
 			}
 		}
 	}
-
-	MetaPopulation metaPopulation;
-
-	std::vector<Agent> agents;
-	std::vector<Individual> population;
-	std::vector<Weights> populationW;
-	std::vector<float> fitness;
-
-	const size_t popSize;
-	const size_t synapseCount;
-	const json motherDescription;
 };
 
