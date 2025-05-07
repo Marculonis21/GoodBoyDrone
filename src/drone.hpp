@@ -19,6 +19,7 @@ struct Thruster {
 	float powerController;
 
     float angle;
+    float power;
 
 	const float maxAngle = M_PI * 0.5;
 	const float maxPower = 15.0;
@@ -28,18 +29,20 @@ struct Thruster {
 	void reset() {
 		angleController = 0;
 		powerController = 0;
+        power = 0;
         angle = 0;
 	}
 
-    float getPower() {
-        return powerController * maxPower;
-    }
-
 	void update(const float dt) {
-        const float desiredAngle = angleController * maxAngle;
-        const float speedOfTransition = 5.0f;
+        const float angleSpeedOfTransition = 5.0f;
+        const float powerSpeedOfTransition = 10.0f;
 
-        angle += (desiredAngle - angle) * speedOfTransition * dt;
+        const float desiredAngle = angleController * maxAngle;
+
+        angle += (desiredAngle - angle) * angleSpeedOfTransition * dt;
+
+        const float desiredPower = powerController * maxPower;
+        power += (desiredPower - power) * powerSpeedOfTransition * dt;
     }
 
     void control(float ac, float pc) {
@@ -155,10 +158,6 @@ struct Drone {
             return 1.0;
         }
 
-    private: 
-        float dist(const sf::Vector2f &vec) const {
-            return sqrt((vec.x*vec.x)+(vec.y*vec.y));
-        }
     };
 
 	sf::Vector2f pos;
@@ -225,13 +224,13 @@ struct Drone {
         sf::Vector2f lThrustVector{cos(lAngle), sin(lAngle)};
         sf::Vector2f rThrustVector{cos(rAngle), sin(rAngle)};
 
-        return lThrustVector * thrusterLeft.getPower() + 
-               rThrustVector * thrusterRight.getPower();
+        return lThrustVector * thrusterLeft.power + 
+               rThrustVector * thrusterRight.power;
     }
 
     float getTorque() {
-        const float lPower = thrusterLeft.getPower();
-        const float rPower = thrusterRight.getPower();
+        const float lPower = thrusterLeft.power;
+        const float rPower = thrusterRight.power;
 
         const float lAngle = thrusterLeft.angle - M_PI * 0.5f;
         const float rAngle = thrusterRight.angle - M_PI * 0.5f;

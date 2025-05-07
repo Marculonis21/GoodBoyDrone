@@ -42,7 +42,7 @@ struct AbstractRunner {
 	}
 
 	void levelUpProcedure(const AbstractEA &ea) {
-		if (ea.lastFitnessStats.max > 42000 && currentLevel+1 < worldLevels.size()) {
+		if (ea.lastFitnessStats.max > 45000 && currentLevel+1 < worldLevels.size()) {
 			currentLevel += 1;
 		}
 	}
@@ -170,7 +170,6 @@ struct EAWindowRunner : public AbstractRunner {
 			updateDoneFlag = ea->update(dt, worldLevels[currentLevel], ea->generation % 500 == 0);
 
 			if (ea->generation % 500 == 0) {
-				// WARN: IS THIS CORRECT?
 				EAItem best = (*ea)[0];
 
 				goalPrefab->setPosition(worldLevels[currentLevel].goals[best.drone->goalIndex % worldLevels[currentLevel].goals.size()]);
@@ -199,6 +198,7 @@ struct EAWindowRunner : public AbstractRunner {
 				updateDoneFlag = false;
 
 				ea->process();
+				worldLevels[currentLevel].randomize();
 
 				debugPrintProcedure(*ea);
 
