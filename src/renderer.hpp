@@ -129,7 +129,7 @@ public:
 
         for (auto && s : drone->sensors) {
 
-            sf::Vector2f dir{cos(drone->angle+s.angle), sin(drone->angle+s.angle)};
+            sf::Vector2f dir = s.getDir(drone);
             sf::Vector2f start = drone->pos + dir*drone->contactRadius;
 
             float check = s.check(drone, world, drones);

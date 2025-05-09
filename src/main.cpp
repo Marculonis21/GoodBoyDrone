@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 	Drone drone{droneStart};
 
 	Net mother;
-	mother.modules.push_back(std::make_unique<Linear>(8, 16));
+	mother.modules.push_back(std::make_unique<Linear>(10, 16));
 	mother.modules.push_back(std::make_unique<Tanh>(16));
 	mother.modules.push_back(std::make_unique<Linear>(16, 4));
 	mother.modules.push_back(std::make_unique<Tanh>(4));

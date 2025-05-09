@@ -53,6 +53,88 @@ struct Thruster {
 
 struct Drone {
 
+    struct DirSensor {
+        private:
+            sf::Vector2f R_r1;
+            sf::Vector2f R_r2;
+
+        public:  
+        const float angleOffset; 
+        const float length; 
+
+        DirSensor(float angleOffset, float length) : angleOffset(angleOffset), length(length) { 
+            const float rAngleOffset = angleOffset * DEG_TO_RAD;
+            float c = std::cos(rAngleOffset);
+            float s = std::sin(rAngleOffset);
+
+            R_r1 = sf::Vector2f{c, -s};
+            R_r2 = sf::Vector2f{s, c};
+        }
+
+        sf::Vector2f getDir(const Drone* from) const {
+            sf::Vector2f velDir{from->vel.x, from->vel.y};
+            velDir = velDir/dist(velDir);
+
+            // rotated dir
+            sf::Vector2f dir{
+                R_r1.x*velDir.x + R_r1.y*velDir.y, 
+                R_r2.x*velDir.x + R_r2.y*velDir.y
+            };
+
+            return dir;
+        }
+
+        float check(const Drone* from, 
+                    const World &world, 
+                    const std::vector<std::unique_ptr<Drone>> &drones) const {
+
+            sf::Vector2f dir = getDir(from);
+
+            // ray march - here we goooo!
+            sf::Vector2f test = from->pos + dir*from->contactRadius;
+
+            const std::vector<sf::Vector2f> worldWalls {
+                sf::Vector2f{1,0},
+                sf::Vector2f{0,1},
+                sf::Vector2f{-1,0},
+                sf::Vector2f{0,-1}
+            };
+
+            float checked = 0;
+            while (checked < length) {
+                float closest = std::numeric_limits<float>::max();
+                float check = 0;
+                for (auto && w : world.walls) {
+                    check = dist(w.pos - test) - w.radius;
+                    if (check < closest) {
+                        closest = check;
+                    }
+                }
+
+                // make the outer edge a wall too
+
+                for (int i = 0; i < worldWalls.size(); ++i) {
+                    check = dist(sf::Vector2f{test.x*worldWalls[i].x, test.y*worldWalls[i].y});
+                    if (i > 1) { check = world.boundary.x - check; }
+
+                    if (check < closest) {
+                        closest = check;
+                    }
+                }
+
+                // inside an object OR really close
+                if (closest < 1) {
+                    return checked/length;
+                }
+
+                checked += closest;
+                test += dir*closest;
+            }
+
+            return 1.0;
+        }
+    };
+
     struct Sensor {
         const float angle; 
         const float length; 
@@ -107,57 +189,6 @@ struct Drone {
 
             return 1.0;
         }
-
-        float dirCheck(const sf::Vector2f &origDir,
-                       const Drone* from, 
-                       const World &world, 
-                       const std::vector<std::unique_ptr<Drone>> &drones) const {
-
-            sf::Vector2f dir = origDir/dist(origDir);
-            // ray march - here we goooo!
-            sf::Vector2f test = from->pos + dir*from->contactRadius;
-
-            const std::vector<sf::Vector2f> worldWalls {
-                sf::Vector2f{1,0},
-                sf::Vector2f{0,1},
-                sf::Vector2f{-1,0},
-                sf::Vector2f{0,-1}
-            };
-
-            float checked = 0;
-            while (checked < length) {
-                float closest = std::numeric_limits<float>::max();
-                float check = 0;
-                for (auto && w : world.walls) {
-                    check = dist(w.pos - test) - w.radius;
-                    if (check < closest) {
-                        closest = check;
-                    }
-                }
-
-                // make the outer edge a wall too
-
-                for (int i = 0; i < worldWalls.size(); ++i) {
-                    check = dist(sf::Vector2f{test.x*worldWalls[i].x, test.y*worldWalls[i].y});
-                    if (i > 1) { check = world.boundary.x - check; }
-
-                    if (check < closest) {
-                        closest = check;
-                    }
-                }
-
-                // inside an object OR really close
-                if (closest < 1) {
-                    return checked/length;
-                }
-
-                checked += closest;
-                test += dir*closest;
-            }
-
-            return 1.0;
-        }
-
     };
 
 	sf::Vector2f pos;
@@ -167,15 +198,21 @@ struct Drone {
 	float angularVel;
 
 	Thruster thrusterLeft, thrusterRight;
-    std::vector<Sensor> sensors = {
-        Sensor{M_PI*0.00, 200},
-        Sensor{M_PI*0.25, 200},
-        Sensor{M_PI*0.50, 200},
-        Sensor{M_PI*0.75, 200},
-        Sensor{M_PI*1.00, 200},
-        Sensor{M_PI*1.25, 200},
-        Sensor{M_PI*1.50, 200},
-        Sensor{M_PI*1.75, 200}
+    /* std::vector<Sensor> sensors = { */
+    /*     Sensor{M_PI*0.00, 200}, */
+    /*     Sensor{M_PI*0.25, 200}, */
+    /*     Sensor{M_PI*0.50, 200}, */
+    /*     Sensor{M_PI*0.75, 200}, */
+    /*     Sensor{M_PI*1.00, 200}, */
+    /*     Sensor{M_PI*1.25, 200}, */
+    /*     Sensor{M_PI*1.50, 200}, */
+    /*     Sensor{M_PI*1.75, 200} */
+    /* }; */
+
+    std::vector<DirSensor> sensors = {
+        DirSensor{0, 200},
+        DirSensor{60, 200},
+        DirSensor{-60, 200},
     };
 
 	const float contactRadius = 60;
@@ -277,7 +314,7 @@ struct Drone {
 	}
 
     void genObservation_with_sensors(std::vector<float> &observation, const World &world) {
-        assert(observation.size() == 8 && "genObservation_with_sensors wants to generate 8 obs");
+        assert(observation.size() == 10 && "genObservation_with_sensors wants to generate 10 obs");
 
         sf::Vector2f goalDist = world.goals[goalIndex % world.goals.size()] - pos;
 
@@ -290,29 +327,10 @@ struct Drone {
         observation[5] = goalDist.x / world.boundary.x;
         observation[6] = goalDist.y / world.boundary.y;
 
-        sf::Vector2f dir{vel.x, vel.y};
         // check in the direction of flight
-        observation[7] = 1 - sensors[0].dirCheck(dir, this, world, {});
-
-        /* for (int s = 0; s < sensors.size()/2; ++s) { */
-            
-        /*     float s1 = sensors[s].check(this,world,{}); */
-        /*     float s2 = sensors[s+4].check(this,world,{}); */
-
-        /*     float final = 0; */
-        /*     if (s1 <= s2) { */
-        /*         final = +(1 - s1); */
-        /*     } */
-        /*     else { */
-        /*         final = -(1 - s2); */
-        /*     } */
-
-        /*     observation[7+s] = final; */
-        /* } */
-
-        /* for (int l = 0; l < lastControls.size(); ++l) { */
-        /*     observation[13+l] = lastControls[l]; */
-        /* } */
+        for (int s = 0; s < sensors.size(); ++s) {
+            observation[7+s] = 1 - sensors[s].check(this, world, {});
+        }
     }
 
     void genObservation_no_sensors(std::vector<float> &observation, const World &world) {

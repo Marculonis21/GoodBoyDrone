@@ -10,6 +10,7 @@ inline std::mt19937 gen(time(nullptr));
 constexpr float HALF_PI = M_PI * 0.5f;
 
 constexpr double RAD_TO_DEG = 57.295779513082320876798154814105;
+constexpr double DEG_TO_RAD = M_PI / 180.0f;
 
 const uint32_t winHeight = 800;
 const uint32_t winWidth = 800;
