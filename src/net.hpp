@@ -239,4 +239,32 @@ struct Net {
 
         return newNet;
     }
+
+    static Net loadConfig(const json &config) {
+        Net newNet;
+
+        size_t count = config["moduleCount"];
+        for (int i = 0; i < count; ++i) {
+            json mc = config["moduleConfig"][std::to_string(i)];
+
+            if (mc.contains("Linear")) {
+                std::size_t in = mc["Linear"]["in"];
+                std::size_t out = mc["Linear"]["out"];
+                newNet.modules.push_back(std::make_unique<Linear>(in, out));
+            }
+            else if (mc.contains("ReLU")) {
+                std::size_t out = mc["ReLU"]["out"];
+                newNet.modules.push_back(std::make_unique<ReLU>(out));
+            }
+            else if (mc.contains("Tanh")) {
+                std::size_t out = mc["Tanh"]["out"];
+                newNet.modules.push_back(std::make_unique<Tanh>(out));
+            }
+            else {
+                assert(false && "NET Loading didn't find any proper module to load - name missmatch!");
+            }
+        }
+
+        return newNet;
+    }
 };

@@ -44,6 +44,7 @@ struct EasyEA : public AbstractEA {
 		}
 
         json config = {
+			{"type", "EasyEA"},
             {"popSize", popSize},
             {"motherNet", motherDescription},
 			{"popW", popW}
@@ -53,24 +54,7 @@ struct EasyEA : public AbstractEA {
         file << config.dump(4);
         file.close();
 
-		std::cout << "EA saved to a file " << path << std::endl;
-	}
-
-	void loadProcedure(const std::string &path) override {
-        std::ifstream input(path);
-        json config;
-        input >> config;
-        input.close();
-
-        size_t size = config["popSize"];
-		assert(size == this->popSize && "Problem - Load size != EA pop size!");
-
-		for (int i = 0; i < size; ++i) {
-			populationW[i] = Weights(config["popW"][std::to_string(i)]);
-		}
-
-		resetAgents();
-		std::cout << "EA popw finished loading from a file " << path << std::endl;
+		std::cout << "EasyEA saved to a file: " << path << std::endl;
 	}
 
 private:

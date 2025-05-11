@@ -127,6 +127,7 @@ public:
 
         target->draw(collisionSphere);
 
+        float speed = dist(drone->vel);
         for (auto && s : drone->sensors) {
 
             sf::Vector2f dir = s.getDir(drone);
@@ -140,11 +141,15 @@ public:
                                      {{endMax.x, endMax.y}, sf::Color::White}};
             target->draw(lineMax, 2, sf::Lines);
 
+
             // hit
             if (check < 1.0) {
+                // we do not care about sensor when speed is less than X
+                sf::Color hitColor = speed > 2.5 ? sf::Color::Red : sf::Color::Green;
+
                 sf::Vector2f endCurr = drone->pos + dir*(drone->contactRadius + check*s.length);
-                sf::Vertex lineCurr[] = {{{start.x,   start.y}, sf::Color::Red}, 
-                                         {{endCurr.x, endCurr.y}, sf::Color::Red}};
+                sf::Vertex lineCurr[] = {{{start.x,   start.y}, hitColor}, 
+                                         {{endCurr.x, endCurr.y}, hitColor}};
                 target->draw(lineCurr, 2, sf::Lines);
             }
         }

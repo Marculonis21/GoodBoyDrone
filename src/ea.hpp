@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 using Individual = std::unique_ptr<Net>;
 using Agent = std::unique_ptr<Drone>;
@@ -29,19 +30,17 @@ struct FitnessStats {
 
 struct AbstractEA {
 	uint64_t generation = 0;
-	size_t input_size;
+	const size_t input_size;
 
 	FitnessStats lastFitnessStats;
 
-	AbstractEA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize), motherDescription(mother.describe())  {
+	AbstractEA(size_t popSize, const Net &mother, const Drone &father) : popSize(popSize), motherDescription(mother.describe()), input_size(mother.input_size)  {
 		assert(popSize % 2 == 0 && "PopSize should be divisible by 2! (Please)");
 
 		population.reserve(popSize);
 		populationW.reserve(popSize);
 		agents.reserve(popSize);
 		fitness.resize(popSize);
-
-		input_size = mother.input_size;
 	}
 
 	virtual ~AbstractEA() {}
@@ -131,11 +130,9 @@ struct AbstractEA {
 	virtual void process() = 0;
 
 	void saveEA(const std::string &path) const {
-		assert(false && "NOT IMPLEMENTED");
-	};
-	static std::unique_ptr<AbstractEA> loadEA(const std::string &path) {
-		assert(false && "NOT IMPLEMENTED");
-		return 0;
+		assert(std::filesystem::exists("saves") && "'saves' directory in build is missing!");
+
+		saveProcedure("saves/"+path+".json");
 	};
 
 protected:
@@ -146,6 +143,8 @@ protected:
 
 	const size_t popSize;
 	const json motherDescription;
+	
+	friend class Loader;
 
 	// base from EasyEA
 	virtual void initPop(const Net &mother) {
@@ -180,5 +179,11 @@ protected:
 	virtual std::vector<size_t> fitnessAgents() = 0;
 
 	virtual void saveProcedure(const std::string &path) const = 0;
-	virtual void loadProcedure(const std::string &path) = 0;
+	virtual void loadPopW(const json &config) {
+		for (int i = 0; i < popSize; ++i) {
+			populationW[i] = Weights(config["popW"][std::to_string(i)]);
+		}
+
+		this->resetAgents();
+	};
 };

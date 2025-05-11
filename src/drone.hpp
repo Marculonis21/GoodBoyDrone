@@ -327,9 +327,15 @@ struct Drone {
         observation[5] = goalDist.x / world.boundary.x;
         observation[6] = goalDist.y / world.boundary.y;
 
+        float speed = dist(vel);
         // check in the direction of flight
         for (int s = 0; s < sensors.size(); ++s) {
-            observation[7+s] = 1 - sensors[s].check(this, world, {});
+            if (speed > 2.5) {
+                observation[7+s] = 1 - sensors[s].check(this, world, {});
+            }
+            else {
+                observation[7+s] = 0;
+            }
         }
     }
 

@@ -48,11 +48,25 @@ struct CoSyNE : public AbstractEA {
 	}
 
 	void saveProcedure(const std::string &path) const override {
-		assert(false && "NOT IMPLEMENTED YET");
-	}
+		json popW;
 
-	void loadProcedure(const std::string &path) override {
-		assert(false && "NOT IMPLEMENTED YET");
+		for (int i = 0; i < popSize; ++i) {
+			popW[std::to_string(i)] = populationW[i];
+		}
+
+        json config = {
+			{"type", "CoSyNE"},
+            {"popSize", popSize},
+			{"synapseCount", synapseCount},
+            {"motherNet", motherDescription},
+			{"popW", popW}
+        };
+
+        std::ofstream file(path);
+        file << config.dump(4);
+        file.close();
+
+		std::cout << "CoSyNE saved to a file: " << path << std::endl;
 	}
 
 private:
@@ -208,7 +222,6 @@ private:
 				}
 			}
 
-			/* std::cout << s<<": MARKED: " << marked.size() << std::endl; */
 			if (marked.size() > 1) {
 				_permuteMarkedMeta(marked, s);
 			}
