@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	Net mother;
-	mother.modules.push_back(std::make_unique<Linear>(10, 16));
+	mother.modules.push_back(std::make_unique<Linear>(8, 16));
 	mother.modules.push_back(std::make_unique<Tanh>(16));
 	mother.modules.push_back(std::make_unique<Linear>(16, 4));
 	mother.modules.push_back(std::make_unique<Tanh>(4));
@@ -67,6 +67,15 @@ int main(int argc, char *argv[]) {
 	    .isStatic = true,
 	};
 
+	const World world_randomized{
+		.boundary = sf::Vector2f{winWidth, winHeight},
+	    .walls = {},
+	    .goals = {sf::Vector2f{200, 200}, sf::Vector2f{600, 600},
+	      		  sf::Vector2f{200, 600}, sf::Vector2f{600, 200},
+	      		  sf::Vector2f{400, 650}},
+	    .isStatic = false,
+	};
+
 	const World world_lvl2{
 		world.boundary,
 		std::vector<Wall>{
@@ -77,19 +86,8 @@ int main(int argc, char *argv[]) {
 		true,
 	};
 
-	const World world_lvl3{
-		world.boundary,
-		std::vector<Wall>{
-			Wall{sf::Vector2f{400, 400}, 100},
-			Wall{sf::Vector2f{400, 400}, 100},
-			Wall{sf::Vector2f{400, 400}, 100},
-		},
-		world.goals,
-		false,
-	};
-
-
-	runner->prepare(std::vector<World>{world, world_lvl2, world_lvl3});
+	runner->prepare(std::vector<World>{world, world_randomized});
+	/* runner->prepare(std::vector<World>{world, world_lvl2}); */
 	runner->run(drone, std::move(ea), -1);
 
 	return 0;

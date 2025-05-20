@@ -30,10 +30,10 @@ aggregated = all_data.groupby(group_cols).agg(
 # sns.lineplot(data=aggregated[aggregated["alg"] == "cosyne"], x="gen", y="max_mean", hue="alg", style="popSize", errorbar=None)
 # sns.lineplot(data=aggregated[aggregated["alg"] == "cosyne"], x="gen", y="avg_mean", hue="alg", style="popSize", errorbar=None)
 
-sns.lineplot(data=aggregated, x="gen", y="max_mean", hue="alg", style="popSize", errorbar=None)
-# sns.lineplot(data=aggregated, x="gen", y="avg_mean", hue="alg", style="popSize", errorbar=None)
+# sns.lineplot(data=aggregated, x="gen", y="max_mean", hue="alg", style="popSize", errorbar=None)
+sns.lineplot(data=aggregated, x="gen", y="avg_mean", hue="alg", style="popSize", errorbar=None)
 plt.xlabel("Generation")
-plt.ylabel("Mean of Max Fitness")
+plt.ylabel("Mean of Avg Fitness")
 plt.legend()
 plt.tight_layout()
 plt.show()

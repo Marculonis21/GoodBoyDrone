@@ -39,6 +39,7 @@ struct AbstractRunner {
 
 	void levelUpProcedure(const AbstractEA &ea) {
 		if (ea.lastFitnessStats.max > 45000 && currentLevel+1 < worldLevels.size()) {
+			/* std::cout << "[WARN] LEVEL UP DISSABLED!" << std::endl; */
 			currentLevel += 1;
 		}
 	}
@@ -114,6 +115,7 @@ struct EAWindowRunner : public AbstractRunner {
 		window = std::make_unique<sf::RenderWindow>(sf::VideoMode(winWidth, winHeight), "SFML - GoodBoyDrone", sf::Style::Default, settings);
 
 		window->setMouseCursorVisible(true);
+		window->setFramerateLimit(60);
 		window->setVerticalSyncEnabled(true);
 
 		wallPrefab = std::make_unique<sf::CircleShape>();

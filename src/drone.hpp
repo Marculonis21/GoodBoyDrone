@@ -41,8 +41,10 @@ struct Thruster {
 
         angle += (desiredAngle - angle) * angleSpeedOfTransition * dt;
 
-        const float desiredPower = powerController * maxPower;
-        power += (desiredPower - power) * powerSpeedOfTransition * dt;
+        /* const float desiredPower = powerController * maxPower; */
+        /* power += (desiredPower - power) * powerSpeedOfTransition * dt; */
+
+        power = powerController * maxPower;
     }
 
     void control(float ac, float pc) {
@@ -211,8 +213,8 @@ struct Drone {
 
     std::vector<DirSensor> sensors = {
         DirSensor{0, 200},
-        DirSensor{60, 200},
-        DirSensor{-60, 200},
+        /* DirSensor{60, 200}, */
+        /* DirSensor{-60, 200}, */
     };
 
 	const float contactRadius = 60;
@@ -314,7 +316,7 @@ struct Drone {
 	}
 
     void genObservation_with_sensors(std::vector<float> &observation, const World &world) {
-        assert(observation.size() == 10 && "genObservation_with_sensors wants to generate 10 obs");
+        assert(observation.size() == 8 && "genObservation_with_sensors wants to generate 8 obs");
 
         sf::Vector2f goalDist = world.goals[goalIndex % world.goals.size()] - pos;
 
@@ -327,15 +329,9 @@ struct Drone {
         observation[5] = goalDist.x / world.boundary.x;
         observation[6] = goalDist.y / world.boundary.y;
 
-        float speed = dist(vel);
         // check in the direction of flight
         for (int s = 0; s < sensors.size(); ++s) {
-            if (speed > 2.5) {
-                observation[7+s] = 1 - sensors[s].check(this, world, {});
-            }
-            else {
-                observation[7+s] = 0;
-            }
+            observation[7+s] = 1 - sensors[s].check(this, world, {});
         }
     }
 
