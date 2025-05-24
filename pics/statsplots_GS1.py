@@ -8,11 +8,11 @@ import seaborn as sns
 
 # pandas.read_csv()
 
-files = sorted([x for x in os.listdir("build/fits") if x.startswith("gsCoSyNE128")])
+files = sorted([x for x in os.listdir("CosyneGS1") if x.startswith("gsCoSyNE128")])
 
 dfs = []
 for file in files:
-    df = pd.read_csv(f"build/fits/{file}", header=None, names=["gen", "max", "min", "avg", "med", "none"])
+    df = pd.read_csv(f"CosyneGS1/{file}", header=None, names=["gen", "max", "min", "avg", "med", "none"])
 
     df["mprob"] = file.split("_")[1]
     df["mcauchy"] = file.split("_")[2]
