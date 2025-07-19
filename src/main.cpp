@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 		if (std::string(argv[2]) == "easyea") {
 			ea = std::make_unique<EasyEA>(128, mother, drone);
 		} else if (std::string(argv[2]) == "cosyne") {
-			ea = std::make_unique<CoSyNE>(128, mother, drone);
+			ea = std::make_unique<CoSyNE>(256, mother, drone);
 		} else {
 			std::cout << "Incorrect ea selected - possible: 'easyea', 'cosyne'"
 					  << std::endl;
@@ -86,7 +86,17 @@ int main(int argc, char *argv[]) {
 		true,
 	};
 
-	runner->prepare(std::vector<World>{world, world_randomized});
+	const World world_lvl2_randomized{
+		world.boundary,
+		std::vector<Wall>{
+			Wall{sf::Vector2f{400, 400}, 100},
+			Wall{sf::Vector2f{300, 400}, 50},
+		},
+		world.goals,
+		false,
+	};
+
+	runner->prepare(std::vector<World>{world, world_randomized, world_lvl2, world_lvl2_randomized});
 	/* runner->prepare(std::vector<World>{world, world_lvl2}); */
 	runner->run(drone, std::move(ea), -1);
 

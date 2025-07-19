@@ -42,14 +42,14 @@ struct World {
 		std::uniform_int_distribution<std::mt19937::result_type> posDistr(0, winWidth);
 		std::uniform_int_distribution<std::mt19937::result_type> sizeDistr(50, winWidth/8);
 
-		for (int i = 0; i < walls.size(); ++i) {
-			while (true) {
-				walls[i] = Wall{sf::Vector2f{(float)posDistr(gen), (float)posDistr(gen)}, (float)sizeDistr(gen)};
-				if (dist(droneStart - walls[i].pos) - walls[i].radius >= 60) {
-					break;
-				}
-			}
-		}
+		/* for (int i = 0; i < walls.size(); ++i) { */
+		/* 	while (true) { */
+		/* 		walls[i] = Wall{sf::Vector2f{(float)posDistr(gen), (float)posDistr(gen)}, (float)sizeDistr(gen)}; */
+		/* 		if (dist(droneStart - walls[i].pos) - walls[i].radius >= 60) { */
+		/* 			break; */
+		/* 		} */
+		/* 	} */
+		/* } */
 
 		for (int i = 0; i < goals.size(); ++i) {
 			while (true) {

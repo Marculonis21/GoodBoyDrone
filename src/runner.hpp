@@ -38,7 +38,7 @@ struct AbstractRunner {
 	}
 
 	void levelUpProcedure(const AbstractEA &ea) {
-		if (ea.lastFitnessStats.max > 45000 && currentLevel+1 < worldLevels.size()) {
+		if (ea.lastFitnessStats.max > 40000 && currentLevel+1 < worldLevels.size()) {
 			/* std::cout << "[WARN] LEVEL UP DISSABLED!" << std::endl; */
 			currentLevel += 1;
 		}
